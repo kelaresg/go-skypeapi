@@ -16,7 +16,7 @@ Join by code need 3 steps;
 2. add a member by use AddMember, the member id is user self id, and role value is "Admin", and the response will get code 207.
 2. then add a member by use AddMember too, the member id is user self id, but role value is "User". and done
  */
-func main() {
+func main5() {
 	cli, err := skype.NewClient()
 	if err != nil {
 		fmt.Println(err)

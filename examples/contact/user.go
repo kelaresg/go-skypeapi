@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func main() {
+func main3() {
 	cli, err := skype.NewClient()
 	if err != nil {
 		fmt.Println(err)

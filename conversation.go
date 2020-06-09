@@ -216,7 +216,7 @@ add a member to a group conversation.
 */
 func (c *ConversationsClient) AddMember(apiHost string, skypeToken string, regToken string, members Members, conversationId string) (err error) {
 	//API_MSGSHOST
-	//https://client-s.gateway.messenger.live.com/v1/threads/19%3A0be6022fd0d843b4916cf5c0492c3412%40thread.skype/members
+	//https://client-s.gateway.messenger.live.com/v1/threads/4323A0b5463022fd0d43b4916cf5c6492c3412%40thread.skype/members
 	path := fmt.Sprintf("%s/v1/threads/%s/members", apiHost, conversationId)
 	fmt.Println(path)
 	req := Request{timeout: 30}
@@ -239,7 +239,7 @@ func (c *ConversationsClient) AddMember(apiHost string, skypeToken string, regTo
  * Remove Member From Conversation
  */
 func (c *ConversationsClient)RemoveMember(apiHost string, skypeToken string, regToken string, conversationId string, userId string)  {
-	//DELETE Request URL: https://client-s.gateway.messenger.live.com/v1/threads/19%3A0be6022fd0d843b4916cf5c0492c3412%40thread.skype/members/8:live:.cid.d3feb90dceeb51cc
+	//DELETE Request URL: https://client-s.gateway.messenger.live.com/v1/threads/1434A0b436022fd0d84342916c3435c0432c3412%40thread.skype/members/8:live:.cid.db9****2b51cc
 	path := fmt.Sprintf("%s/v1/threads/%s/members/%s", apiHost, conversationId, userId)
 	fmt.Println(path)
 	req := Request{timeout: 30}
@@ -260,7 +260,6 @@ func (c *ConversationsClient)RemoveMember(apiHost string, skypeToken string, reg
  * Retrieve the join URL for a group conversation, if it is currently public.
  */
 func (c *ConversationsClient)GetConJoinUrl(apiHost string, skypeToken string, regToken string, conversationId string, userId string)  {
-	//DELETE Request URL: https://client-s.gateway.messenger.live.com/v1/threads/19%3A0be6022fd0d843b4916cf5c0492c3412%40thread.skype/members/8:live:.cid.d3feb90dceeb51cc
 	path := fmt.Sprintf("%s", API_JOIN_URL)
 	fmt.Println(path)
 	req := Request{timeout: 30}
@@ -275,7 +274,7 @@ func (c *ConversationsClient)GetConJoinUrl(apiHost string, skypeToken string, re
 		"threadId":   conversationId,
 	}
 	params, _ := json.Marshal(data)
-	body, err, _ := req.request("post", path, strings.NewReader(string(params)), nil, headers)
+	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
 	if err != nil {
 		fmt.Println("get join url err: ", err)
 	}
@@ -288,7 +287,7 @@ func (c *ConversationsClient)GetConJoinUrl(apiHost string, skypeToken string, re
  */
 func (c *ConversationsClient)JoinConByCode(skypeToken string, regToken string, joinUrl string) (err error, conInfo JoinToConInfo) {
 	joinUrlArr := strings.Split(joinUrl, ".com/")
-	//join url e.g https://join.skype.com/IYuOjwyiqUIu
+	//join url e.g https://join.skype.com/IYu****iqUIu
 	path := fmt.Sprintf("%s/api/v2/conversation/", API_JOIN)
 	fmt.Println(path)
 	req := Request{timeout: 30}
@@ -296,7 +295,6 @@ func (c *ConversationsClient)JoinConByCode(skypeToken string, regToken string, j
 		"Authentication":    "skypetoken=" + skypeToken,
 		"RegistrationToken": regToken,
 		"BehaviorOverride":  "redirectAs404",
-		//"X-Skypetoken":     skypeToken,
 	}
 	data := map[string]string{
 		"shortId": joinUrlArr[1],

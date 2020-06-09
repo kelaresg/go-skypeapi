@@ -3,6 +3,8 @@ package skype
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gogf/gf/encoding/gurl"
+	"strings"
 )
 
 type Location struct {
@@ -196,5 +198,194 @@ func (c *ContactClient) BlockList(id, skypetoken string) (err error) {
 	list := Blocks{}
 	json.Unmarshal([]byte(body), &list)
 	c.Blocks = &list
+	return
+}
+
+
+type Block struct {
+	UiVersion     string `json:"ui_version"`
+	ReportAbuse   bool `json:"report_abuse"`
+	DeleteContact bool `json:"delete_contact"`
+	ReportContext string `json:"report_context"`
+}
+/**
+ * BlockContact
+ * id: live:xxxxxxxxx
+ * otherId: 8:live:xxxxxxxx
+ */
+func (c *ContactClient)BlockContact(skypeToken string, id string, otherId string, report bool, deleteContact bool) (err error, conInfo JoinToConInfo) {
+	idEncode := gurl.Encode(id)
+	otherIdEncode := gurl.Encode(otherId)
+	path := fmt.Sprintf("%s/users/%s/contacts/blocklist/%s", API_CONTACTS, idEncode, otherIdEncode)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"x-skypetoken": skypeToken,
+	}
+	data := Block{
+		"skype.com",
+		report,
+		deleteContact,
+		"profile",
+	}
+	params, _ := json.Marshal(data)
+	body, err, _ := req.request("PUT", path, strings.NewReader(string(params)), nil, headers)
+	if err != nil {
+		fmt.Println("BlockContact err: ", err)
+	}
+	fmt.Println("BlockContact resp: ", body)
+	return
+}
+
+/**
+ * UnBlockContact
+ * id: live:xxxxxxxxx
+ * otherId: 8:live:xxxxxxxx
+ */
+func (c *ContactClient)UnBlockContact(skypeToken string, id string, otherId string) (err error, conInfo JoinToConInfo) {
+	idEncode := gurl.Encode(id)
+	otherIdEncode := gurl.Encode(otherId)
+	path := fmt.Sprintf("%s/users/%s/contacts/blocklist/%s", API_CONTACTS, idEncode, otherIdEncode)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"x-skypetoken": skypeToken,
+	}
+	body, err, _ := req.request("DELETE", path, nil, nil, headers)
+	if err != nil {
+		fmt.Println("UnBlockContact err: ", err)
+	}
+	fmt.Println("UnBlockContact resp: ", body)
+	return
+}
+
+
+/**
+POST https://contacts.skype.com/contacts/v2/users/live%3A1163765691/contacts
+request payload
+{greeting: ""
+mri: "8:live:.cid.xxxxxxxxxx"
+send_invite: false}
+
+id: live:xxxxxxxxx
+otherId: 8:live:xxxxxxxxxxxxxx
+ */
+func (c *ContactClient)AddContact(skypeToken string, id string, otherId string)  {
+	idEncode := gurl.Encode(id)
+	path := fmt.Sprintf("%s/users/%s/contacts", API_CONTACTS, idEncode)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		//"Authentication":    "skypetoken=" + skypeToken,
+		//"RegistrationToken": regToken,
+		//"BehaviorOverride":  "redirectAs404",
+		"X-Skypetoken":     skypeToken,
+	}
+	data := map[string]interface{}{
+		"greeting": "",
+		"mri":   otherId,
+		"send_invite": false,
+	}
+	params, _ := json.Marshal(data)
+	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
+	if err != nil {
+		fmt.Println("AddContact err: ", err)
+	}
+	fmt.Println("AddContact resp: ", body)
+	return
+}
+/**
+PUT https://azwus1-client-s.gateway.messenger.live.com/v1/users/ME/contacts/8:live:.cid.xxxxxxxxxxx
+formdata:v1/users/ME/contacts/8:live:.cid.xxxxxxxxxxxxx
+ * Add a user to the current user’s contact list. This has no effect on auth status, which must be approved by accepting an invite.
+ * userId: 8:live:.cid.xxxxxxxxxxxx – user thread identifier of not-yet-contact
+ */
+func (c *ContactClient)AddContact2(apiHost string ,skypeToken string, regToken string, userId string)  {
+	path := fmt.Sprintf("%s/v1/users/ME/contacts/%s", apiHost, userId)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"Authentication":    "skypetoken=" + skypeToken,
+		"RegistrationToken": regToken,
+		"BehaviorOverride":  "redirectAs404",
+	}
+	body, err, _ := req.request("PUT", path, nil, nil, headers)
+	if err != nil {
+		fmt.Println("AddContact2 err: ", err)
+	}
+	fmt.Println("AddContact2 resp: ", body)
+	return
+}
+
+/**
+ * Add a user to the current user’s contact list. This has no effect on auth status, which must be approved by accepting an invite.
+ */
+func (c *ContactClient)RemoveUser(apiHost string, skypeToken string, regToken string, conversationId string, userId string)  {
+	path := fmt.Sprintf("%s", API_JOIN_URL)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		//"Authentication":    "skypetoken=" + skypeToken,
+		//"RegistrationToken": regToken,
+		//"BehaviorOverride":  "redirectAs404",
+		"X-Skypetoken":     skypeToken,
+	}
+	data := map[string]string{
+		"baseDomain": "https://join.skype.com/launch/",
+		"threadId":   conversationId,
+	}
+	params, _ := json.Marshal(data)
+	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
+	if err != nil {
+		fmt.Println("get join url err: ", err)
+	}
+	fmt.Println("get join url resp: ", body)
+	return
+}
+
+/**
+ * Delete contact
+ */
+func (c *ContactClient)DeleteContact(skypeToken string, id string, otherId string)  {
+	//DELETE https://contacts.skype.com/contacts/v2/users/live%3Axxxxxx/contacts/8%3Alive%3A.cid.xxxxxxxxxxxxx
+	idEncode := gurl.Encode(id)
+	otherIdEncode := gurl.Encode(otherId)
+	path := fmt.Sprintf("%s/users/%s/contacts/%s", API_CONTACTS, idEncode, otherIdEncode)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"X-Skypetoken":     skypeToken,
+	}
+	body, err, _ := req.request("DELETE", path, nil, nil, headers)
+	if err != nil {
+		fmt.Println("DeleteContact err: ", err)
+	}
+	fmt.Println("DeleteContact resp: ", body)
+	return
+}
+
+/**
+ * Delete contact
+ */
+func (c *ContactClient)ddDeleteUser(skypeToken string, conversationId string, id string, otherId string)  {
+	//https://contacts.skype.com/contacts/v2/users/live%3A1163765691/contacts/8%3Alive%3A.cid.d3feb90dceeb51cc
+	idEncode := gurl.Encode(id)
+	otherIdEncode := gurl.Encode(otherId)
+	path := fmt.Sprintf("%s/users/%s/contacts/%s", API_CONTACTS, idEncode, otherIdEncode)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"X-Skypetoken":     skypeToken,
+	}
+	data := map[string]string{
+		"baseDomain": "https://join.skype.com/launch/",
+		"threadId":   conversationId,
+	}
+	params, _ := json.Marshal(data)
+	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
+	if err != nil {
+		fmt.Println("get join url err: ", err)
+	}
+	fmt.Println("get join url resp: ", body)
 	return
 }
