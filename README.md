@@ -1,1 +1,1 @@
-# go-skypeapi
+#go-skypeapi
