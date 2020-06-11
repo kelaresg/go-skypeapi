@@ -12,11 +12,11 @@ import (
 	"time"
 )
 
-type Client struct {
+type Conn struct {
 	loggedIn    bool //has logged in or not
 	session     *Session
 	Store       *Store
-	Handlers    []Handler
+	handler    []Handler
 	LoginInfo   *LoginInfo
 	UserProfile *UserProfile
 }
@@ -57,8 +57,9 @@ type UserProfile struct {
 	Username    string   `json:"username"`
 }
 
-func NewClient() (cli *Client, err error) {
-	c := &Client{
+func NewConn() (cli *Conn, err error) {
+	c := &Conn{
+		handler:    make([]Handler, 0),
 		loggedIn: false,
 		session:  nil,
 	}
@@ -68,7 +69,7 @@ func NewClient() (cli *Client, err error) {
 /**
 login Skype by web auth
 */
-func (c *Client) Login(usernanme, password string) (err error) {
+func (c *Conn) Login(usernanme, password string) (err error) {
 	MSPRequ, MSPOK, PPFT, err := c.getParams()
 
 	if err != nil {
@@ -101,7 +102,7 @@ func (c *Client) Login(usernanme, password string) (err error) {
 /**
 获得用户的id
 */
-func (c *Client) GetUserId(skypetoken string) (err error) {
+func (c *Conn) GetUserId(skypetoken string) (err error) {
 	//params := url.Values{}
 	//params.Set("auth", skypetoken)
 	req := Request{
@@ -132,9 +133,9 @@ func (c *Client) GetUserId(skypetoken string) (err error) {
 	Raises:
 		.SkypeAuthException: if the login request is rejected
 		.SkypeApiExce`ption: if the login form can't be processed
- * Value used for the `ClientInfo` header of the request for the registration token.
+ * Value used for the `ConnInfo` header of the request for the registration token.
 */
-func (c *Client) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
+func (c *Conn) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
 	secs := strconv.Itoa(int(time.Now().Unix()))
 	lockAndKeyResponse := getMac256Hash(secs)
 	LockAndKey := "appId=" + SKYPEWEB_LOCKANDKEY_APPID + "; time=" + secs + "; lockAndKeyResponse=" + lockAndKeyResponse
@@ -166,7 +167,7 @@ func (c *Client) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
 	return
 }
 
-func (c *Client) storeInfo(registrationTokenStr string, locationHost string) {
+func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 	regArr := strings.Split(registrationTokenStr, ";")
 	registrationToken := ""
 	registrationExpires := ""
@@ -205,7 +206,7 @@ func (c *Client) storeInfo(registrationTokenStr string, locationHost string) {
 	return
 }
 
-func (c *Client) Subscribes() {
+func (c *Conn) Subscribes() {
 	req := Request{
 		timeout: 60,
 	}
@@ -235,7 +236,7 @@ func (c *Client) Subscribes() {
 	}
 }
 
-func (c *Client) Poll() {
+func (c *Conn) Poll() {
 	req := Request{
 		timeout: 60,
 	}
@@ -274,7 +275,11 @@ Loop:
 				// fmt.Println("poller body: ", body)
 				fmt.Println("json.Unmarshal poller body err: ", err)
 			}
-			fmt.Printf("%v", bodyContent)
+			fmt.Println()
+			fmt.Println()
+			fmt.Printf("poller body bodyContent%+v", bodyContent)
+			fmt.Println()
+			fmt.Println()
 			if len(bodyContent.EventMessages) > 0 {
 				for _, message := range bodyContent.EventMessages {
 					if message.Type == "EventMessage" {
@@ -286,17 +291,17 @@ Loop:
 	}
 }
 
-func (c *Client) PollPath() (path string) {
+func (c *Conn) PollPath() (path string) {
 	path = c.LoginInfo.LocationHost + "/v1/users/ME/endpoints/" + c.LoginInfo.EndpointId + "/subscriptions/0/poll"
 	return
 }
 
-func (c *Client) SubscribePath() (path string) {
+func (c *Conn) SubscribePath() (path string) {
 	path = c.LoginInfo.LocationHost + "/v1/users/ME/endpoints/" + c.LoginInfo.EndpointId + "/subscriptions"
 	return
 }
 
-func (c *Client) getToken(t string) (err error) {
+func (c *Conn) getToken(t string) (err error) {
 
 	// # Now pass the login credentials over.
 	params_map := url.Values{}
@@ -322,7 +327,7 @@ func (c *Client) getToken(t string) (err error) {
 	return
 }
 
-func (c *Client) sendCreds(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, t_value string) {
+func (c *Conn) sendCreds(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, t_value string) {
 	// # Now pass the login credentials over.
 	params_map := url.Values{}
 	params_map.Set("wa", "wsignin1.0")
@@ -344,7 +349,7 @@ func (c *Client) sendCreds(username, pwd, MSPRequ, MSPOK, PPFT string) (body str
 	return
 }
 
-func (c *Client) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
+func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
 	params := url.Values{}
 	params.Set("client_id", "578134")
 	params.Set("redirect_uri", "https://web.skype.com")

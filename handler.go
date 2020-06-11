@@ -58,3 +58,36 @@ type ConversationHandler interface {
 	HandleConversation()
 }
 
+/*
+AddHandler adds an handler to the list of handler that receive dispatched messages.
+The provided handler must at least implement the Handler interface. Additionally implemented
+handlers(TextMessageHandler, ImageMessageHandler) are optional. At runtime it is checked if they are implemented
+and they are called if so and needed.
+*/
+func (wac *Conn) AddHandler(handler Handler) {
+	wac.handler = append(wac.handler, handler)
+}
+
+// RemoveHandler removes a handler from the list of handlers that receive dispatched messages.
+func (wac *Conn) RemoveHandler(handler Handler) bool {
+	i := -1
+	for k, v := range wac.handler {
+		if v == handler {
+			i = k
+			break
+		}
+	}
+	if i > -1 {
+		wac.handler = append(wac.handler[:i], wac.handler[i+1:]...)
+		return true
+	}
+	return false
+}
+
+// RemoveHandlers empties the list of handlers that receive dispatched messages.
+func (wac *Conn) RemoveHandlers() {
+	wac.handler = make([]Handler, 0)
+}
+
+
+

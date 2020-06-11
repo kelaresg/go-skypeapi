@@ -13,7 +13,7 @@ func main() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	cli, err := skype.NewClient()
+	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -13,7 +13,7 @@ import (
 Retrieve the join URL for a group conversation, if it is currently public.
  */
 func main6() {
-	cli, err := skype.NewClient()
+	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
 	}

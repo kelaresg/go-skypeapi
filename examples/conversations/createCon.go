@@ -10,7 +10,7 @@ import (
 )
 
 func main7() {
-	cli, err := skype.NewClient()
+	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
 	}

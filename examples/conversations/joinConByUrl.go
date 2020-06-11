@@ -17,7 +17,7 @@ Join by code need 3 steps;
 2. then add a member by use AddMember too, the member id is user self id, but role value is "User". and done
  */
 func main5() {
-	cli, err := skype.NewClient()
+	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
 	}

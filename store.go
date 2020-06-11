@@ -12,7 +12,7 @@ func newStore() *Store {
 	}
 }
 
-func (c *Client) updateContacts(contacts interface{}) {
+func (c *Conn) updateContacts(contacts interface{}) {
 	ch, ok := contacts.([]interface{})
 	if !ok {
 		return
@@ -36,7 +36,7 @@ func (c *Client) updateContacts(contacts interface{}) {
 	}
 }
 
-func (c *Client) updateChats(chats interface{}) {
+func (c *Conn) updateChats(chats interface{}) {
 	ch, ok := chats.([]interface{})
 	if !ok {
 		return
