@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"os"
-	"skype"
+	"github.com/kelaresg/go-skypeapi"
 	"strings"
 )
 

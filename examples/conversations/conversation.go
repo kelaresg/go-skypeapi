@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"skype"
+	"github.com/kelaresg/go-skypeapi"
 )
 
 func main1() {

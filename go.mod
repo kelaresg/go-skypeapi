@@ -1,4 +1,4 @@
-module skype
+module github.com/kelaresg/go-skypeapi
 
 go 1.14
 

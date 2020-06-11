@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/kelaresg/go-skypeapi"
 	"github.com/spf13/viper"
-	"skype"
 )
 
 func main() {
