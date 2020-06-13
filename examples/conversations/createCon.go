@@ -18,7 +18,7 @@ func main7() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	err  = cli.Login(username, pwd)
-	c := skype.ConversationsClient{}
+	//c := skype.Conn{}
 
 	userId := cli.UserProfile.Username
 	fmt.Printf("\ne.g:conversationName(no spaces) memberUsername1 memberUsername2")
@@ -45,7 +45,7 @@ func main7() {
 		HistoryDisclosed: "true",
 		Topic: Topic,
 	}
-	c.CreateConversationGroup(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members)
+	cli.CreateConversationGroup(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members)
 
 	Members = skype.Members{}
 	for _, memberId := range inputArr {
@@ -54,6 +54,6 @@ func main7() {
 			Role: "Admin",
 		})
 	}
-	c.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, "")
+	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, "")
 	fmt.Println("-----------------------------end-------------------------------")
 }

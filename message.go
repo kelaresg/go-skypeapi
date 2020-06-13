@@ -46,19 +46,6 @@ type requestOptions struct {
 //User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Skype/8.60.0.76 Chrome/78.0.3904.130 Electron/7.2.3 Safari/537.36
 //X-ECS-Etag: "3ZwBSEJ4CybjtKLUlq2Fd8qg5GgFJfzNkc9nXF0T2qU="
 
-func Poll() {
-	req := Request{
-		timeout: 30,
-	}
-	redirect_url, err, _ := req.HttpPostJson(MSGS_HOST+POLL_URL, "", nil)
-
-	fmt.Printf("%s", redirect_url)
-	fmt.Printf("%s", err)
-}
-
-func dispatch() {
-
-}
 
 //{
 //"eventMessages": [{

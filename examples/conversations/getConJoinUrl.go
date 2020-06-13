@@ -21,7 +21,7 @@ func main6() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	err  = cli.Login(username, pwd)
-	c := skype.ConversationsClient{}
+	c := skype.Conn{}
 
 	testUserId := "8:"+cli.UserProfile.Username
 	// "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype"

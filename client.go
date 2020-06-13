@@ -19,6 +19,7 @@ type Conn struct {
 	handler    []Handler
 	LoginInfo   *LoginInfo
 	UserProfile *UserProfile
+	ConversationsList *ConversationsList
 }
 
 type LoginInfo struct {
@@ -283,7 +284,7 @@ Loop:
 			if len(bodyContent.EventMessages) > 0 {
 				for _, message := range bodyContent.EventMessages {
 					if message.Type == "EventMessage" {
-
+						c.handle(message)
 					}
 				}
 			}

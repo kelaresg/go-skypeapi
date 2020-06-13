@@ -25,7 +25,7 @@ func main5() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	err  = cli.Login(username, pwd)
-	c := skype.ConversationsClient{}
+	//c := skype.Conn{}
 
 	fmt.Printf("\niuput url and enter to join:")
 	inputReader := bufio.NewReader(os.Stdin)
@@ -36,20 +36,20 @@ func main5() {
 	}
 	inputArr := strings.Split(input, " ")
 	joinUrl := inputArr[0]
-	err, rsp := c.JoinConByCode(cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, joinUrl)
+	err, rsp := cli.JoinConByCode(cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, joinUrl)
 	member1 := skype.Member{
 		Id: "8:"+cli.UserProfile.Username,
 		Role: "Admin",
 	}
 	Members := skype.Members{}
 	Members.Members = append(Members.Members, member1)
-	c.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, rsp.Resource)
+	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, rsp.Resource)
 	member2 := skype.Member{
 		Id: "8:"+cli.UserProfile.Username,
 		Role: "User",
 	}
 	mewMembers := skype.Members{}
 	mewMembers.Members = append(mewMembers.Members, member2)
-	c.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, mewMembers, rsp.Resource)
+	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, mewMembers, rsp.Resource)
 	fmt.Println("-----------------------------end-------------------------------")
 }
