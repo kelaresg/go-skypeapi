@@ -114,13 +114,13 @@ type MessageClient struct {
 	SendFileBack    *SendMessageBack
 }
 
-func (m *MessageClient) SendMsg(locationHost, chatThreadId, content, skypeToken, resToken string) (err error) {
+func (m *Conn) SendMsg(chatThreadId, content string, output chan<- error) (err error) {
 	//API_MSGSHOST chat thread identifier
-	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", locationHost, chatThreadId)
+	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", m.LoginInfo.LocationHost, chatThreadId)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + skypeToken,
-		"RegistrationToken": resToken,
+		"Authentication":    "skypetoken=" + m.LoginInfo.SkypeToken,
+		"RegistrationToken": m.LoginInfo.RegistrationtokensStr,
 	}
 	clientmessageid := time.Now().Unix() * 1000
 	data := map[string]interface{}{
@@ -130,10 +130,15 @@ func (m *MessageClient) SendMsg(locationHost, chatThreadId, content, skypeToken,
 		"content":         content,
 	}
 	params, _ := json.Marshal(data)
-	body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(params), nil, headers)
-	back := &SendMessageBack{}
-	json.Unmarshal([]byte(body), back)
-	m.SendMessageBack = back
+	_ , err = req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(params), nil, headers)
+	//back := &SendMessageBack{}
+	//json.Unmarshal([]byte(body), back)
+	//m.SendMessageBack = back
+	if err != nil {
+		output <- fmt.Errorf("message sending responded with %d", err)
+	} else {
+		output <- nil
+	}
 	return
 }
 
@@ -144,7 +149,7 @@ func (m *MessageClient) SendMsg(locationHost, chatThreadId, content, skypeToken,
 `type: "pish/image"
 `filename: "gh_e12cb68793e0_258.jpg"
 */
-func (m *MessageClient) SendFile(locationHost, chatThreadId, filename, skypeToken, resToken, fileType string, duration_ms int) (err error) {
+func (m *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int) (err error) {
 	meta := map[string]interface{}{
 		"permissions": map[string]interface{}{
 			chatThreadId: []string{"read"},
@@ -163,7 +168,7 @@ func (m *MessageClient) SendFile(locationHost, chatThreadId, filename, skypeToke
 	}
 	headers := map[string]string{
 		"X-Client-Version": "0/0.0.0.0",
-		"Authorization":    "skype_token " + skypeToken,
+		"Authorization":    "skype_token " + m.LoginInfo.SkypeToken,
 	}
 	data, _ := json.Marshal(meta)
 	req := Request{timeout: 30}
@@ -244,11 +249,11 @@ func (m *MessageClient) SendFile(locationHost, chatThreadId, filename, skypeToke
 			"amsreferences": []string{bodyfile_one_d.ID},
 		}
 		headers1 := map[string]string{
-			"Authentication":    "skypetoken=" + skypeToken,
-			"RegistrationToken": resToken,
+			"Authentication":    "skypetoken=" + m.LoginInfo.SkypeToken,
+			"RegistrationToken": m.LoginInfo.RegistrationtokensStr,
 		}
 		requestBody1, _ := json.Marshal(requestBody)
-		surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", locationHost, chatThreadId)
+		surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", m.LoginInfo.LocationHost, chatThreadId)
 		body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(requestBody1), nil, headers1)
 		if err != nil {
 			return err

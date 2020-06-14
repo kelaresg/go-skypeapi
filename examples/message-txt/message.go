@@ -21,7 +21,7 @@ func main() {
 	err = cli.Login(username, pwd)
 
 	c := skype.ConversationsClient{}
-	c.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
+	cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
 	fmt.Println("conversations:", c.ConversationsList)
 	for _, v := range c.ConversationsList.Conversations {
 		fmt.Println("conversation id :", v.Id)
@@ -32,7 +32,7 @@ func main() {
 	/**\
 	eg 1 : get send message params
 	*/
-	m := skype.MessageClient{}
+	//m := skype.MessageClient{}
 	fmt.Println("-------------------------------------------")
 	for {
 		fmt.Printf("\neg: <ConversationId> <message content>")
@@ -46,7 +46,7 @@ func main() {
 		inputArr := strings.Split(input, " ")
 		ChatThreadId := inputArr[0]
 		contentArr := inputArr[1:]
-		m.SendMsg(cli.LoginInfo.LocationHost, ChatThreadId, strings.Join(contentArr, " "), cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
+		cli.SendMsg(ChatThreadId, strings.Join(contentArr, " "), nil)
 	}
 	/**
 	eg 2 send file  ,

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"github.com/kelaresg/go-skypeapi"
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 	err = cli.Login(username, pwd)
 
 	c := skype.ConversationsClient{}
-	c.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
+	cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
 	fmt.Println("conversations:", c.ConversationsList)
 	for _, v := range c.ConversationsList.Conversations {
 		fmt.Println("conversation id :", v.Id)
@@ -57,7 +57,7 @@ func main() {
 		fmt.Scanln(&ChatThreadId, &filename, &filetype, &duration_ms)
 		fmt.Println(ChatThreadId, filename, filetype)
 		fmt.Println("mp3时长：",   duration_ms)
-		m.SendFile(cli.LoginInfo.LocationHost, ChatThreadId, filename, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, filetype, duration_ms)
+		cli.SendFile(ChatThreadId, filename, filetype, duration_ms)
 		fmt.Println("send success")
 		fmt.Println("go in next send logic")
 		fmt.Println("-------------------------------")

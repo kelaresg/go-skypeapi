@@ -20,6 +20,7 @@ type Conn struct {
 	LoginInfo   *LoginInfo
 	UserProfile *UserProfile
 	ConversationsList *ConversationsList
+	*MessageClient
 }
 
 type LoginInfo struct {
