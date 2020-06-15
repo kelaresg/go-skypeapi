@@ -21,6 +21,7 @@ type Conn struct {
 	UserProfile *UserProfile
 	ConversationsList *ConversationsList
 	*MessageClient
+	*ContactClient
 }
 
 type LoginInfo struct {
@@ -64,6 +65,8 @@ func NewConn() (cli *Conn, err error) {
 		handler:    make([]Handler, 0),
 		loggedIn: false,
 		session:  nil,
+		ContactClient: &ContactClient{},
+		MessageClient: &MessageClient{},
 	}
 	return c, nil
 }

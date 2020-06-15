@@ -12,7 +12,7 @@ import (
 /**
 * block user
  */
-func main() {
+func main9() {
 	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
@@ -21,7 +21,7 @@ func main() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	err  = cli.Login(username, pwd)
-	c := skype.ContactClient{}
+	//c := skype.ContactClient{}
 
 	fmt.Printf("\ne.g:live:******")
 	fmt.Printf("\niuput skypeUsername and enter to remove:")
@@ -33,7 +33,7 @@ func main() {
 	}
 	inputArr := strings.Fields(input)
 	otherid := "8:"+inputArr[0]
-	c.DeleteContact(cli.LoginInfo.SkypeToken, cli.UserProfile.Username, otherid)
+	cli.DeleteContact(cli.LoginInfo.SkypeToken, cli.UserProfile.Username, otherid)
 	//c.AddContact(cli.LoginInfo.SkypeToken, cli.UserProfile.Username, otherid)
 	fmt.Println("-----------------------------end-------------------------------")
 }

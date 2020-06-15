@@ -127,14 +127,14 @@ type ContactClient struct {
 	Blocks *Blocks
 }
 
-func (c *ContactClient) ContactList(id, skypetoken string) (err error) {
+func (c *Conn) ContactList(id string) (err error) {
 	//fmt.Println("string:id", id)
 	//fmt.Println(API_CONTACTS)
 	url := fmt.Sprintf("%s/users/%s/contacts", API_CONTACTS, id)
 	//fmt.Println(url)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"x-skypetoken": skypetoken,
+		"x-skypetoken": c.LoginInfo.SkypeToken,
 	}
 	body, err := req.HttpGetWitHeaderAndCookiesJson(url, nil, "", nil, headers)
 	if err != nil {
@@ -143,16 +143,18 @@ func (c *ContactClient) ContactList(id, skypetoken string) (err error) {
 	//fmt.Println("contacts list", body)
 	list := ContactsList{}
 	json.Unmarshal([]byte(body), &list)
-	c.Users = &list
+	c.ContactClient.Users = &list
+	//fmt.Println("ContactList: ", &list)
+	//fmt.Println("ContactList1", c.ContactClient.Users)
 	return
 }
 
-func (c *ContactClient) ContactGroupList(id, skypetoken string) (err error) {
+func (c *Conn) ContactGroupList(id string) (err error) {
 	url := fmt.Sprintf("%s/users/%s/groups", API_CONTACTS, id)
 	//fmt.Println(url)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"x-skypetoken": skypetoken,
+		"x-skypetoken": c.LoginInfo.SkypeToken,
 	}
 	body, err := req.HttpGetWitHeaderAndCookiesJson(url, nil, "", nil, headers)
 	//fmt.Println(body)
@@ -161,11 +163,11 @@ func (c *ContactClient) ContactGroupList(id, skypetoken string) (err error) {
 	}
 	list := GroupsList{}
 	json.Unmarshal([]byte(body), &list)
-	c.Groups = &list
+	c.ContactClient.Groups = &list
 	return
 }
 
-func (c *ContactClient) GetAllContactInfo(id, skypetoken string) (err error) {
+func (c *Conn) GetAllContactInfo(id, skypetoken string) (err error) {
 	url := fmt.Sprintf("%s/users/%s", API_CONTACTS, id)
 	//fmt.Println(url)
 	req := Request{timeout: 30}
@@ -179,11 +181,11 @@ func (c *ContactClient) GetAllContactInfo(id, skypetoken string) (err error) {
 	}
 	list := GroupsList{}
 	json.Unmarshal([]byte(body), &list)
-	c.Groups = &list
+	c.ContactClient.Groups = &list
 	return
 }
 
-func (c *ContactClient) BlockList(id, skypetoken string) (err error) {
+func (c *Conn) BlockList(id, skypetoken string) (err error) {
 	url := fmt.Sprintf("%s/users/%s/blocklist", API_CONTACTS, id)
 	fmt.Println(url)
 	req := Request{timeout: 30}
@@ -197,7 +199,7 @@ func (c *ContactClient) BlockList(id, skypetoken string) (err error) {
 	}
 	list := Blocks{}
 	json.Unmarshal([]byte(body), &list)
-	c.Blocks = &list
+	c.ContactClient.Blocks = &list
 	return
 }
 
@@ -213,7 +215,7 @@ type Block struct {
  * id: live:xxxxxxxxx
  * otherId: 8:live:xxxxxxxx
  */
-func (c *ContactClient)BlockContact(skypeToken string, id string, otherId string, report bool, deleteContact bool) (err error, conInfo JoinToConInfo) {
+func (c *Conn)BlockContact(skypeToken string, id string, otherId string, report bool, deleteContact bool) (err error, conInfo JoinToConInfo) {
 	idEncode := gurl.Encode(id)
 	otherIdEncode := gurl.Encode(otherId)
 	path := fmt.Sprintf("%s/users/%s/contacts/blocklist/%s", API_CONTACTS, idEncode, otherIdEncode)
@@ -242,7 +244,7 @@ func (c *ContactClient)BlockContact(skypeToken string, id string, otherId string
  * id: live:xxxxxxxxx
  * otherId: 8:live:xxxxxxxx
  */
-func (c *ContactClient)UnBlockContact(skypeToken string, id string, otherId string) (err error, conInfo JoinToConInfo) {
+func (c *Conn)UnBlockContact(skypeToken string, id string, otherId string) (err error, conInfo JoinToConInfo) {
 	idEncode := gurl.Encode(id)
 	otherIdEncode := gurl.Encode(otherId)
 	path := fmt.Sprintf("%s/users/%s/contacts/blocklist/%s", API_CONTACTS, idEncode, otherIdEncode)
@@ -270,7 +272,7 @@ send_invite: false}
 id: live:xxxxxxxxx
 otherId: 8:live:xxxxxxxxxxxxxx
  */
-func (c *ContactClient)AddContact(skypeToken string, id string, otherId string)  {
+func (c *Conn)AddContact(skypeToken string, id string, otherId string)  {
 	idEncode := gurl.Encode(id)
 	path := fmt.Sprintf("%s/users/%s/contacts", API_CONTACTS, idEncode)
 	fmt.Println(path)
@@ -300,7 +302,7 @@ formdata:v1/users/ME/contacts/8:live:.cid.xxxxxxxxxxxxx
  * Add a user to the current user’s contact list. This has no effect on auth status, which must be approved by accepting an invite.
  * userId: 8:live:.cid.xxxxxxxxxxxx – user thread identifier of not-yet-contact
  */
-func (c *ContactClient)AddContact2(apiHost string ,skypeToken string, regToken string, userId string)  {
+func (c *Conn)AddContact2(apiHost string ,skypeToken string, regToken string, userId string)  {
 	path := fmt.Sprintf("%s/v1/users/ME/contacts/%s", apiHost, userId)
 	fmt.Println(path)
 	req := Request{timeout: 30}
@@ -320,7 +322,7 @@ func (c *ContactClient)AddContact2(apiHost string ,skypeToken string, regToken s
 /**
  * Add a user to the current user’s contact list. This has no effect on auth status, which must be approved by accepting an invite.
  */
-func (c *ContactClient)RemoveUser(apiHost string, skypeToken string, regToken string, conversationId string, userId string)  {
+func (c *Conn)RemoveUser(apiHost string, skypeToken string, regToken string, conversationId string, userId string)  {
 	path := fmt.Sprintf("%s", API_JOIN_URL)
 	fmt.Println(path)
 	req := Request{timeout: 30}
@@ -346,7 +348,7 @@ func (c *ContactClient)RemoveUser(apiHost string, skypeToken string, regToken st
 /**
  * Delete contact
  */
-func (c *ContactClient)DeleteContact(skypeToken string, id string, otherId string)  {
+func (c *Conn)DeleteContact(skypeToken string, id string, otherId string)  {
 	//DELETE https://contacts.skype.com/contacts/v2/users/live%3Axxxxxx/contacts/8%3Alive%3A.cid.xxxxxxxxxxxxx
 	idEncode := gurl.Encode(id)
 	otherIdEncode := gurl.Encode(otherId)
@@ -367,7 +369,7 @@ func (c *ContactClient)DeleteContact(skypeToken string, id string, otherId strin
 /**
  * Delete contact
  */
-func (c *ContactClient)ddDeleteUser(skypeToken string, conversationId string, id string, otherId string)  {
+func (c *Conn)ddDeleteUser(skypeToken string, conversationId string, id string, otherId string)  {
 	//https://contacts.skype.com/contacts/v2/users/live%3A1163765691/contacts/8%3Alive%3A.cid.d3feb90dceeb51cc
 	idEncode := gurl.Encode(id)
 	otherIdEncode := gurl.Encode(otherId)

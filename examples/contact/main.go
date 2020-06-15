@@ -6,7 +6,7 @@ import (
 	"github.com/kelaresg/go-skypeapi"
 )
 
-func main1() {
+func main() {
 	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
@@ -18,31 +18,30 @@ func main1() {
 	err  = cli.Login(username, pwd)
 	userId := cli.UserProfile.Username
 
-	skypetoken := cli.LoginInfo.SkypeToken
-	contant := skype.ContactClient{}
-	contant.ContactList(userId, skypetoken)
-	users := *contant.Users
-	for _,v := range users.Contacts  {
-		fmt.Println()
-		fmt.Printf("contact name :%s, contact id :%s", v.DisplayName, v.PersonId)
-	}
+	//contant := skype.ContactClient{}
+	cli.ContactList(userId)
+	//users := *contant.Users
+	//for _,v := range users.Contacts  {
+	//	fmt.Println()
+	//	fmt.Printf("contact name :%s, contact id :%s", v.DisplayName, v.PersonId)
+	//}
 
 	//get contact group list
-	fmt.Println()
-	fmt.Println()
-	fmt.Println("group: Retrieve a list of contact groups defined by the user")
-	contant.ContactGroupList(userId, skypetoken)
-	for _, gv := range contant.Groups.Groups {
-		fmt.Println("contact group :", gv)
-	}
+	//fmt.Println()
+	//fmt.Println()
+	//fmt.Println("group: Retrieve a list of contact groups defined by the user")
+	//contant.ContactGroupList(userId, skypetoken)
+	//for _, gv := range contant.Groups.Groups {
+	//	fmt.Println("contact group :", gv)
+	//}
 
 	//get blocklist
-	fmt.Println()
-	fmt.Println("group: Retrieve a list of blocked users")
-	contant.BlockList(userId, skypetoken)
-	for _, bv := range contant.Blocks.Blocklist  {
-		fmt.Println("block:", bv)
-	}
+	//fmt.Println()
+	//fmt.Println("group: Retrieve a list of blocked users")
+	//contant.BlockList(userId, skypetoken)
+	//for _, bv := range contant.Blocks.Blocklist  {
+	//	fmt.Println("block:", bv)
+	//}
 	fmt.Println("-----------------------------end-------------------------------")
 	//getAllContactInfo
 	//contant.GetAllContactInfo(userId, skypetoken)
