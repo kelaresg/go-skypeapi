@@ -19,20 +19,20 @@ func (c *Conn) updateContacts(contacts interface{}) {
 	}
 
 	for _, contact := range ch {
-		_, ok := contact.(ContactInfo)
+		contactNode, ok := contact.(ContactInfo)
 		if !ok {
 			continue
 		}
 
-		//c.Store.Contacts[contactNode.Id] = Contact{
-		//	contactNode.Id,
-		//	contactNode.PersonId,
-		//	contactNode.Type,
-		//	contactNode.DisplayName,
-		//	contactNode.Authorized,
-		//	contactNode.Suggested,
-		//	contactNode.Mood,
-		//}
+		c.Store.Contacts[contactNode.Id] = ContactInfo{
+			contactNode.Id,
+			contactNode.PersonId,
+			contactNode.Type,
+			contactNode.DisplayName,
+			contactNode.Authorized,
+			contactNode.Suggested,
+			contactNode.Mood,
+		}
 	}
 }
 

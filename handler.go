@@ -114,8 +114,25 @@ type TextMessage struct {
 
 func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler) {
 
-
 	if message.Resource.MessageType == "RichText" {
+		for _, h := range handlers {
+			if x, ok := h.(TextMessageHandler); ok {
+				ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
+				t, _ := time.Parse(time.RFC3339,message.Resource.ComposeTime)
+				message.Resource.Jid = ConversationLinkArr[1]
+				message.Resource.Timestamp = t.Unix()
+				if wac.shouldCallSynchronously(h) {
+					x.HandleTextMessage(message.Resource)
+				} else {
+					go x.HandleTextMessage(message.Resource)
+				}
+			}
+		}
+	} else if message.Resource.MessageType == "Text" {
+		fmt.Println()
+		fmt.Printf("unhandled message type: %+v", message)
+		fmt.Println()
+		//if messageType is "Text"
 		for _, h := range handlers {
 			if x, ok := h.(TextMessageHandler); ok {
 				ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")

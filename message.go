@@ -114,7 +114,7 @@ type MessageClient struct {
 	SendFileBack    *SendMessageBack
 }
 
-func (m *Conn) SendMsg(chatThreadId, content string, output chan<- error) (err error) {
+func (m *Conn) SendMsg(chatThreadId, content, clientMessageId string, output chan<- error) (err error) {
 	//API_MSGSHOST chat thread identifier
 	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", m.LoginInfo.LocationHost, chatThreadId)
 	req := Request{timeout: 30}
@@ -122,18 +122,22 @@ func (m *Conn) SendMsg(chatThreadId, content string, output chan<- error) (err e
 		"Authentication":    "skypetoken=" + m.LoginInfo.SkypeToken,
 		"RegistrationToken": m.LoginInfo.RegistrationtokensStr,
 	}
-	clientmessageid := time.Now().Unix() * 1000
+	//currentTimeNanoStr := strconv.FormatInt(time.Now().UnixNano(), 10)
+	//currentTimeNanoStr = currentTimeNanoStr[:len(currentTimeNanoStr)-3]
+	//clientMessageId := currentTimeNanoStr + fmt.Sprintf("%04v", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(10000))
 	data := map[string]interface{}{
 		"contenttype":     "text",
-		"clientmessageid": strconv.Itoa(int(clientmessageid)),
+		"clientmessageid": clientMessageId, // A large integer (~20 digits)
+		//"composetime":     time.Now().Format(time.RFC3339),
 		"messagetype":     "Text",
 		"content":         content,
 	}
 	params, _ := json.Marshal(data)
-	_ , err = req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(params), nil, headers)
+	body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(params), nil, headers)
 	//back := &SendMessageBack{}
 	//json.Unmarshal([]byte(body), back)
 	//m.SendMessageBack = back
+	fmt.Println("SendMsg rsp body :", body)
 	if err != nil {
 		output <- fmt.Errorf("message sending responded with %d", err)
 	} else {

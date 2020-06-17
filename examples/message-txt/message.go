@@ -20,10 +20,10 @@ func main() {
 
 	err = cli.Login(username, pwd)
 
-	c := skype.ConversationsClient{}
+	//c := skype.ConversationsClient{}
 	cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
-	fmt.Println("conversations:", c.ConversationsList)
-	for _, v := range c.ConversationsList.Conversations {
+	fmt.Println("conversations:", cli.ConversationsList)
+	for _, v := range cli.ConversationsList.Conversations {
 		fmt.Println("conversation id :", v.Id)
 	}
 	fmt.Println()

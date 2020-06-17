@@ -99,22 +99,29 @@ type Resource struct {
 	IsVideoCall           string `json:"isVideoCall"` // "FALSE|TRUE"
 	IsActive              bool   `json:"isactive"`
 	Id                    string   `json:"id"`
-	Jid                   string   `json:"jid"`
+	Jid                   string   `json:"jid"` // conversation id
 	SendId                string   `json:"sendid"`
 	Timestamp             int64   `json:"timestamp"`
 }
 
 func (Re *Resource)GetFromMe (ce *Conn) bool{
-	ConversationLinkArr := strings.Split(Re.ConversationLink, "/conversations/")
-	Re.Jid = ConversationLinkArr[1]
-	FromArr := strings.Split(Re.From, "/contacts/")
-	Re.SendId = FromArr[1]
-	fmt.Println()
-	fmt.Println("GetFromMe0: ", ce.UserProfile.Username)
-	fmt.Println("GetFromMe1: ", Re.SendId)
-	fmt.Println()
-	if ce.UserProfile.Username == Re.SendId {
+	if Re.ConversationLink != "" {
+		ConversationLinkArr := strings.Split(Re.ConversationLink, "/conversations/")
+		Re.Jid = ConversationLinkArr[1]
+	}
+	if Re.From != "" {
+		FromArr := strings.Split(Re.From, "/contacts/")
+		Re.SendId = FromArr[1]
+	}
+	if ce.UserProfile != nil && ce.UserProfile.Username != "" && ce.UserProfile.Username == Re.SendId {
+		fmt.Println()
+		fmt.Println("GetFromMe true: ", ce.UserProfile.Username, Re.SendId)
+		fmt.Println()
 		return true
+	} else {
+		fmt.Println()
+		fmt.Println("GetFromMe false: ", ce.UserProfile, Re.SendId)
+		fmt.Println()
 	}
 	return false
 }

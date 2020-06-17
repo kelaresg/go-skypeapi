@@ -7,15 +7,15 @@ import (
 	"strings"
 )
 
-type Location struct {
-	Country string `json:"country"` // almost certainly an enum...
-	City    string `json:"city"`
-}
-
-type Phone struct {
-	Number string `json:"number"` // pattern: /^+\getAuthorizationState+$/  (with country code)
-	Type   int64  `json:"type"`   // enum, seen: 2
-}
+//type Location struct {
+//	Country string `json:"country"` // almost certainly an enum...
+//	City    string `json:"city"`
+//}
+//
+//type Phone struct {
+//	Number string `json:"number"` // pattern: /^+\getAuthorizationState+$/  (with country code)
+//	Type   int64  `json:"type"`   // enum, seen: 2
+//}
 
 type SearchContact struct {
 	Firstname   string `json:"firstname"`
@@ -31,30 +31,40 @@ type SearchContact struct {
 }
 
 type ContactInfo struct {
-	Id          string `json:"id"`        // username
-	PersonId    string `json:"person_id"` // [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
-	Type        string `json:"type"`      // "skype" | "agent" | string; // enum ?
-	DisplayName string `json:"display_name"`
-	Authorized  bool   `json:"authorized"` //? accepted contact request ?
-	Suggested   bool   `json:"suggested"`  //?
-	Mood        bool   `json:"mood"`       //?
-	Blocked     bool   `json:"blocked"`
-	AvatarUrl   string `json:"avatar_url"` // Canonical form: https://api.skype.com/users/{id}/profile/avatar
-	Locations   []struct {
-		City    string `json:"city"`
-		State   string `json:"state"`
-		Country string `json:"country"`
-	} `json:"locations"`
-	Phones []struct {
-		Number string `json:"number"`
+	Id          string              `json:"id"`        // username
+	PersonId    string              `json:"person_id"` // [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+	Type        string              `json:"type"`      // "skype" | "agent" | string; // enum ?
+	DisplayName string              `json:"display_name"`
+	Authorized  bool                `json:"authorized"` //? accepted contact request ?
+	Suggested   bool                `json:"suggested"`  //?
+	Mood        bool                `json:"mood"`       //?
+	Blocked     bool                `json:"blocked"`
+	AvatarUrl   string              `json:"avatar_url"` // Canonical form: https://api.skype.com/users/{id}/profile/avatar
+	Locations   []Location          `json:"locations"`
+	Phones      []Phone             `json:"phones"`
+	Name        UserInfoProfileName `json:"name"`
+	agent       interface{}
+}
+
+type Location struct {
+	City    string `json:"city"`
+	State   string `json:"state"`
+	Country string `json:"country"`
+	Type    string `json:"type"` // home|
+}
+
+type Phone struct {
+	Number string `json:"number"`
+	Type   int64  `json:"type"`
+}
+
+type Agent struct {
+	Trust string `json:"trust"`
+	Type   int64  `json:"type"`
+	Info   struct{
+		Trusted bool `json:"trusted"`
 		Type   int64  `json:"type"`
-	} `json:"phones"`
-	Name struct {
-		First    string `json:"first"`
-		Surname  string `json:"surname"`  //? also last-name ?
-		Nickname string `json:"nickname"` // username, it is NOT the local nickname that you can modify
-	} `json:"name"`
-	agent interface{}
+	}  `json:"info"`
 }
 
 type ContactGroup struct {
@@ -78,28 +88,42 @@ type UserInfo struct {
 	Blocked             string                      `json:"blocked"`
 	Explicit            string                      `json:"explicit"`
 	CreationTime        string                      `json:"creation_time"`
+	Agent               Agent                       `json:"agent"`
 	RelationshipHistory UserInfoRelationshipHistory `json:"relationship_history"`
 }
+
 type UserInfoProfile struct {
-	Gender      string                     `json:"gender"`
-	Locations   []UserInfoProfileLocations `json:"locations"`
-	Name        UserInfoProfileName        `json:"name"`
-	SkypeHandle string                     `json:"skype_handle"`
+	AvatarUrl   string              `json:"avatar_url"`
+	Birthday    string              `json:"birthday"`
+	Gender      string              `json:"gender"`
+	Locations   []Location          `json:"locations"`
+	Phones      []Phone             `json:"phones"`
+	Name        UserInfoProfileName `json:"name"`
+	Language    string              `json:"language"` // en|
+	SkypeHandle string              `json:"skype_handle"`
+	Mood        string              `json:"mood"`
+	About       string              `json:"about"`
 }
-type UserInfoProfileLocations struct {
-	Type    string `json:"type"`
-	Country string `json:"country"`
-}
+
+//type UserInfoProfileLocations struct {
+//	Type    string `json:"type"`
+//	Country string `json:"country"`
+//}
+
 type UserInfoProfileName struct {
-	First   string `json:"first"`
-	Surname string `json:"surname"`
+	First    string `json:"first"`
+	Surname  string `json:"surname"`
+	Nickname string `json:"nickname"`
 }
+
 type UserInfoRelationshipHistory struct {
 	Sources []UserInfoRelationshipHistorySources `json:"sources"`
 }
+
 type UserInfoRelationshipHistorySources struct {
-	Type string `json:"type"`
-	Time string `json:"time"`
+	Type    string `json:"type"`
+	Time    string `json:"time"`
+	Subtype string `json:"subtype"`
 }
 type GroupsList struct {
 	Count  int         `json:"count"`
@@ -140,12 +164,14 @@ func (c *Conn) ContactList(id string) (err error) {
 	if err != nil {
 		return err
 	}
-	//fmt.Println("contacts list", body)
+	fmt.Println()
+	fmt.Println("contacts list", body)
 	list := ContactsList{}
 	json.Unmarshal([]byte(body), &list)
 	c.ContactClient.Users = &list
-	//fmt.Println("ContactList: ", &list)
-	//fmt.Println("ContactList1", c.ContactClient.Users)
+	fmt.Println()
+	fmt.Println("ContactList: ", &list)
+	fmt.Println("ContactList1", c.ContactClient.Users)
 	return
 }
 
