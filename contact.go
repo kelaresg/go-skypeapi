@@ -73,20 +73,20 @@ type ContactGroup struct {
 	isFavorite bool
 }
 type ContactsList struct {
-	Contacts []UserInfo `json:"contacts"`
+	Contacts []Contact `json:"contacts"`
 	Count    int        `json:"count"`
 	Scope    string     `json:"scope"`
 }
 
-type UserInfo struct {
-	PersonId            string                      `json:"person_id"`
+type Contact struct {
+	PersonId            string                      `json:"person_id"` // 8:xxxxxx
 	Mri                 string                      `json:"mri"`
 	DisplayName         string                      `json:"display_name"`
 	DisplayNameSource   string                      `json:"display_name_source"`
 	Profile             UserInfoProfile             `json:"profile"`
-	Authorized          string                      `json:"authorized"`
-	Blocked             string                      `json:"blocked"`
-	Explicit            string                      `json:"explicit"`
+	Authorized          bool                        `json:"authorized"`
+	Blocked             bool                        `json:"blocked"`
+	Explicit            bool                        `json:"explicit"`
 	CreationTime        string                      `json:"creation_time"`
 	Agent               Agent                       `json:"agent"`
 	RelationshipHistory UserInfoRelationshipHistory `json:"relationship_history"`
@@ -152,10 +152,7 @@ type ContactClient struct {
 }
 
 func (c *Conn) ContactList(id string) (err error) {
-	//fmt.Println("string:id", id)
-	//fmt.Println(API_CONTACTS)
 	url := fmt.Sprintf("%s/users/%s/contacts", API_CONTACTS, id)
-	//fmt.Println(url)
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"x-skypetoken": c.LoginInfo.SkypeToken,
@@ -168,10 +165,14 @@ func (c *Conn) ContactList(id string) (err error) {
 	fmt.Println("contacts list", body)
 	list := ContactsList{}
 	json.Unmarshal([]byte(body), &list)
-	c.ContactClient.Users = &list
-	fmt.Println()
-	fmt.Println("ContactList: ", &list)
-	fmt.Println("ContactList1", c.ContactClient.Users)
+	c.updateContacts(list.Contacts)
+	//fmt.Println()
+	//fmt.Printf("contacts list format%+v", c.Store.Contacts)
+
+	//c.ContactClient.Users = &list
+	//fmt.Println()
+	//fmt.Println("ContactList: ", &list)
+	//fmt.Println("ContactList1", c.ContactClient.Users)
 	return
 }
 

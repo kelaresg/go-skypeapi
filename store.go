@@ -1,38 +1,21 @@
 package skype
 
 type Store struct {
-	Contacts map[string]ContactInfo
+	Contacts map[string]Contact
 	Chats    map[string]ContactGroup
 }
 
 func newStore() *Store {
 	return &Store{
-		make(map[string]ContactInfo),
+		make(map[string]Contact),
 		make(map[string]ContactGroup),
 	}
 }
 
-func (c *Conn) updateContacts(contacts interface{}) {
-	ch, ok := contacts.([]interface{})
-	if !ok {
-		return
-	}
-
-	for _, contact := range ch {
-		contactNode, ok := contact.(ContactInfo)
-		if !ok {
-			continue
-		}
-
-		c.Store.Contacts[contactNode.Id] = ContactInfo{
-			contactNode.Id,
-			contactNode.PersonId,
-			contactNode.Type,
-			contactNode.DisplayName,
-			contactNode.Authorized,
-			contactNode.Suggested,
-			contactNode.Mood,
-		}
+func (c *Conn) updateContacts(contacts []Contact) {
+	for _, contact := range contacts {
+		PersonId := contact.PersonId + "@s.skype.net"
+		c.Store.Contacts[PersonId] = contact
 	}
 }
 

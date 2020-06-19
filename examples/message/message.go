@@ -30,7 +30,7 @@ func main() {
 	/**\
 	eg 1 : get send message params
 	*/
-	m := skype.MessageClient{}
+	//m := skype.MessageClient{}
 	fmt.Println("-------------------------------------------")
 	//for {
 	//	fmt.Printf("\neg: <ConversationId> <message content>")

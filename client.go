@@ -65,6 +65,7 @@ func NewConn() (cli *Conn, err error) {
 		handler:    make([]Handler, 0),
 		loggedIn: false,
 		session:  nil,
+		Store:      newStore(),
 		ContactClient: &ContactClient{},
 		MessageClient: &MessageClient{},
 	}

@@ -2,6 +2,7 @@ package skype
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/url"
 	"strings"
@@ -59,13 +60,13 @@ type LastMessage struct {
 
 type Conversation struct {
 	// https://{host}/v1/threads/{19:threadId} or // https://{host}/v1/users/ME/contacts/{8:contactId}
-	TargetLink       string            `json:"targetLink"`
-	ResourceLink     string            `json:"resourceLink"`
-	ResourceType     string            `json:"resourceType"`
+	TargetLink       string           `json:"targetLink"`
+	ResourceLink     string           `json:"resourceLink"`
+	ResourceType     string           `json:"resourceType"`
 	ThreadProperties ThreadProperties `json:"threadProperties"`
-	Id               interface{}       `json:"id"`      //string 或者 int
-	Type             string            `json:"type"`    // "Conversation" | string;
-	Version          int64             `json:"version"` // a timestamp ? example: 1464030261015
+	Id               interface{}      `json:"id"`      //string 或者 int
+	Type             string           `json:"type"`    // "Conversation" | string;
+	Version          int64            `json:"version"` // a timestamp ? example: 1464030261015
 	Properties       struct {
 		ConversationStatusProperties string `json:"conversationstatusproperties"` // ?
 		OneToOneThreadId             string `json:"onetoonethreadid"`             // ?
@@ -75,33 +76,43 @@ type Conversation struct {
 		IsEmptyConversation          string `json:"isemptyconversation"`          // ?
 	} `json:"properties"`
 	LastMessage               LastMessage `json:"lastMessage"`
-	Messages                  string       `json:"message"`
-	LastUpdatedMessageId      int64        `json:"lastUpdatedMessageId"`
-	LastUpdatedMessageVersion int64        `json:"lastUpdatedMessageVersion"`
+	Messages                  string      `json:"message"`
+	LastUpdatedMessageId      int64       `json:"lastUpdatedMessageId"`
+	LastUpdatedMessageVersion int64       `json:"lastUpdatedMessageVersion"`
 	Resource                  Resource    `json:"resource"`
+	Time                      string      `json:"time"`
+}
+
+type TopicContent struct {
+	XMLName  xml.Name `xml:"topicupdate"` //
+	EventTime string `xml:"eventtime"` //
+	Initiator string `xml:"initiator"`
+	Value string `xml:"value"`
 }
 
 type Resource struct {
-	ConversationLink      string `json:"conversationLink"`
-	Type                  string `json:"type"`
-	EventId               string `json:"eventId"`
-	From                  string `json:"from"`
-	ClientMessageId       string `json:"clientmessageid"`
+	ConversationLink      string      `json:"conversationLink"`
+	Type                  string      `json:"type"`
+	EventId               string      `json:"eventId"`
+	From                  string      `json:"from"`
+	ClientMessageId       string      `json:"clientmessageid"`
 	Version               interface{} `json:"version"` // string|number
-	MessageType           string `json:"messagetype"`
-	CounterPartyMessageId string `json:"counterpartymessageid"`
-	ImDisplayName         string `json:"imdisplayname"`
-	Content               string `json:"content"`
-	ComposeTime           string `json:"composetime"`
-	OriginContextId       string `json:"origincontextid"`
-	OriginalArrivalTime   string `json:"originalarrivaltime"`
-	AckRequired           string `json:"ackrequired"`
-	IsVideoCall           string `json:"isVideoCall"` // "FALSE|TRUE"
-	IsActive              bool   `json:"isactive"`
-	Id                    string   `json:"id"`
-	Jid                   string   `json:"jid"` // conversation id
-	SendId                string   `json:"sendid"`
-	Timestamp             int64   `json:"timestamp"`
+	MessageType           string      `json:"messagetype"`
+	CounterPartyMessageId string      `json:"counterpartymessageid"`
+	ImDisplayName         string      `json:"imdisplayname"`
+	Content               string      `json:"content"`
+	ComposeTime           string      `json:"composetime"`
+	OriginContextId       string      `json:"origincontextid"`
+	OriginalArrivalTime   string      `json:"originalarrivaltime"`
+	AckRequired           string      `json:"ackrequired"`
+	IsVideoCall           string      `json:"isVideoCall"` // "FALSE|TRUE"
+	IsActive              bool        `json:"isactive"`
+	ThreadTopic           string      `json:"threadtopic"`
+	ContentFormat         string      `json:"contentformat"`
+	Id                    string      `json:"id"`
+	Jid                   string      `json:"jid"` // conversation id
+	SendId                string      `json:"sendid"`
+	Timestamp             int64       `json:"timestamp"`
 }
 
 func (Re *Resource)GetFromMe (ce *Conn) bool{

@@ -30,7 +30,7 @@ type Handler interface {
 
 type JsonMessageHandler interface {
 	Handler
-	HandleJsonMessage(message string)
+	HandleJsonMessage(message Resource)
 }
 
 //messagetype: RichText
@@ -112,47 +112,75 @@ type TextMessage struct {
 	Resource
 }
 
+type ChatUpdateHandler interface {
+	Handler
+	HandleChatUpdate(message Resource)
+}
+
 func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler) {
 
-	if message.Resource.MessageType == "RichText" {
-		for _, h := range handlers {
-			if x, ok := h.(TextMessageHandler); ok {
-				ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
-				t, _ := time.Parse(time.RFC3339,message.Resource.ComposeTime)
-				message.Resource.Jid = ConversationLinkArr[1]
-				message.Resource.Timestamp = t.Unix()
-				if wac.shouldCallSynchronously(h) {
-					x.HandleTextMessage(message.Resource)
-				} else {
-					go x.HandleTextMessage(message.Resource)
+	if message.ResourceType == "NewMessage" {
+		ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
+		t, _ := time.Parse(time.RFC3339,message.Resource.ComposeTime)
+		message.Resource.Jid = ConversationLinkArr[1]
+		message.Resource.Timestamp = t.Unix()
+		if message.Resource.MessageType == "RichText" || message.Resource.MessageType == "Text" {
+			for _, h := range handlers {
+				if x, ok := h.(TextMessageHandler); ok {
+					if wac.shouldCallSynchronously(h) {
+						x.HandleTextMessage(message.Resource)
+					} else {
+						go x.HandleTextMessage(message.Resource)
+					}
 				}
 			}
-		}
-	} else if message.Resource.MessageType == "Text" {
-		fmt.Println()
-		fmt.Printf("unhandled message type: %+v", message)
-		fmt.Println()
-		//if messageType is "Text"
-		for _, h := range handlers {
-			if x, ok := h.(TextMessageHandler); ok {
-				ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
-				t, _ := time.Parse(time.RFC3339,message.Resource.ComposeTime)
-				message.Resource.Jid = ConversationLinkArr[1]
-				message.Resource.Timestamp = t.Unix()
-				if wac.shouldCallSynchronously(h) {
-					x.HandleTextMessage(message.Resource)
-				} else {
-					go x.HandleTextMessage(message.Resource)
+		} else if message.Resource.MessageType == "ThreadActivity/TopicUpdate" {
+			for _, h := range handlers {
+				if x, ok := h.(ChatUpdateHandler); ok {
+					if wac.shouldCallSynchronously(h) {
+						x.HandleChatUpdate(message.Resource)
+					} else {
+						go x.HandleChatUpdate(message.Resource)
+					}
 				}
 			}
-		}
-	} else if message.Resource.MessageType == "Control/Typing" {
+		} else if message.Resource.MessageType == "Control/Typing" {
 
-	} else if message.Resource.MessageType == "Control/ClearTyping" {
+		} else if message.Resource.MessageType == "Control/ClearTyping" {
+
+		} else {
+			fmt.Println()
+			fmt.Printf("unknown message type0: %+v", message)
+			fmt.Println()
+		}
+	} else if message.ResourceType == "ThreadUpdate" {
+		ConversationLinkArr := strings.Split(message.ResourceLink, "/threads/")
+		t, _ := time.Parse(time.RFC3339, message.Time)
+		message.Resource.Jid = ConversationLinkArr[1]
+		message.Resource.Timestamp = t.Unix()
+		fmt.Println()
+		fmt.Println("ThreadUpdate")
+		fmt.Println()
+		//if message.Resource.MessageType == "ThreadActivity/TopicUpdate" {
+		//	for _, h := range handlers {
+		//		if x, ok := h.(ChatUpdateHandler); ok {
+		//			if wac.shouldCallSynchronously(h) {
+		//				x.HandleChatUpdate(message.Resource)
+		//			} else {
+		//				go x.HandleChatUpdate(message.Resource)
+		//			}
+		//		}
+		//	}
+		//} else {
+		//	fmt.Println()
+		//	fmt.Printf("unknown message type1: %+v", message)
+		//	fmt.Println()
+		//}
+	} else if message.ResourceType == "ThreadUpdate" {
 
 	} else {
 		fmt.Println()
-		fmt.Printf("unknown message type: %+v", message)
+		fmt.Printf("unknown message type2: %+v", message)
 		fmt.Println()
 	}
 
@@ -183,6 +211,40 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 	//			} else {
 	//				go x.HandleTextMessage(m)
 	//			}
+	//		}
+	//	}
+	//}
+}
+
+func (wac *Conn) handleChats(chats interface{}) {
+
+	//var chatList []Chat
+	//c, ok := chats.([]interface{})
+	//if !ok {
+	//	return
+	//}
+	//for _, chat := range c {
+	//	chatNode, ok := chat.(binary.Node)
+	//	if !ok {
+	//		continue
+	//	}
+	//
+	//	jid := strings.Replace(chatNode.Attributes["jid"], "@c.us", "@s.whatsapp.net", 1)
+	//	chatList = append(chatList, Chat{
+	//		jid,
+	//		chatNode.Attributes["name"],
+	//		chatNode.Attributes["count"],
+	//		chatNode.Attributes["t"],
+	//		chatNode.Attributes["mute"],
+	//		chatNode.Attributes["spam"],
+	//	})
+	//}
+	//for _, h := range wac.handler {
+	//	if x, ok := h.(ChatListHandler); ok {
+	//		if wac.shouldCallSynchronously(h) {
+	//			x.HandleChatList(chatList)
+	//		} else {
+	//			go x.HandleChatList(chatList)
 	//		}
 	//	}
 	//}
