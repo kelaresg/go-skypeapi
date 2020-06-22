@@ -12,21 +12,15 @@ type Member struct {
 	Id   string `json:"id"`
 	Role string `json:"role"`
 }
+
 type Properties struct {
 	HistoryDisclosed  string `json:"historydisclosed"` // true|false
 	Topic  string `json:"topic"`
 }
+
 type Members struct {
 	Members []Member `json:"members"`
 	Properties  Properties `json:"properties"`
-}
-
-type ThreadProperties struct {
-	Topic       string `json:"topic"`
-	Lastjoinat  string `json:"lastjoinat"` // ? a timestamp ? example: "1421342788493"
-	Version     string `json:"version"`    //? a timestamp ? example: "1464029299838"
-	Members     string `json:"members"`
-	Membercount string `json:"membercount"`
 }
 
 type Join struct {
@@ -44,13 +38,51 @@ type JoinToConInfo struct {
 	Resource string
 }
 
+
+type Conversation struct {
+	TargetLink                string                 `json:"targetLink"`
+	ResourceLink              string                 `json:"resourceLink"`
+	ResourceType              string                 `json:"resourceType"`
+	ThreadProperties          ThreadProperties       `json:"threadProperties"`
+	Id                        string                 `json:"id"`      //string | int?
+	Type                      string                 `json:"type"`    // "Conversation" | string;
+	Version                   int64                  `json:"version"` // a timestamp ? example: 1464030261015
+	Properties                ConversationProperties `json:"properties"`
+	LastMessage               LastMessage            `json:"lastMessage"`
+	Messages                  string                 `json:"message"`
+	LastUpdatedMessageId      int64                  `json:"lastUpdatedMessageId"`
+	LastUpdatedMessageVersion int64                  `json:"lastUpdatedMessageVersion"`
+	Resource                  Resource               `json:"resource"`
+	Time                      string                 `json:"time"`
+}
+
+type ThreadProperties struct {
+	Topic       string `json:"topic"`
+	Lastjoinat  string `json:"lastjoinat"` // ? a timestamp ? example: "1421342788493"
+	Version     string `json:"version"`    //? a timestamp ? example: "1464029299838"
+	Members     string `json:"members"`
+	Membercount string `json:"membercount"`
+}
+
+type ConversationProperties struct {
+	ConversationStatusProperties string `json:"conversationstatusproperties"` // ?
+	ConsumptionHorizonPublished  string `json:"consumptionhorizonpublished"`  // ?
+	OneToOneThreadId             string `json:"onetoonethreadid"`             // ?
+	LastImReceivedTime           string `json:"lastimreceivedtime"`           // ?
+	ConsumptionHorizon           string `json:"consumptionhorizon"`           // ?
+	ConversationStatus           string `json:"conversationstatus"`           // ?
+	IsEmptyConversation          string `json:"isemptyconversation"`          // ?
+	IsFollowed                   string `json:"isfollowed"`                   // ?
+}
+
 type LastMessage struct {
 	Id                  string `json:"id"`                  // ?
+	OriginContextId     string `json:"origincontextid"`     // ?
 	OriginalArrivalTime string `json:"originalarrivaltime"` // ?
 	MessageType         string `json:"messagetype"`         // ?
 	Version             string `json:"version"`             // ?
 	ComposeTime         string `json:"composetime"`         // ?
-	ClientMessageiId    string `json:"clientmessageid"`     // ?
+	ClientMessageId     string `json:"clientmessageid"`     // ?
 	ConversationLink    string `json:"conversationLink"`    // ?
 	Content             string `json:"content"`             // ?
 	Type                string `json:"type"`                // ?
@@ -58,33 +90,15 @@ type LastMessage struct {
 	From                string `json:"from"`                // ?
 }
 
-type Conversation struct {
-	// https://{host}/v1/threads/{19:threadId} or // https://{host}/v1/users/ME/contacts/{8:contactId}
-	TargetLink       string           `json:"targetLink"`
-	ResourceLink     string           `json:"resourceLink"`
-	ResourceType     string           `json:"resourceType"`
-	ThreadProperties ThreadProperties `json:"threadProperties"`
-	Id               interface{}      `json:"id"`      //string 或者 int
-	Type             string           `json:"type"`    // "Conversation" | string;
-	Version          int64            `json:"version"` // a timestamp ? example: 1464030261015
-	Properties       struct {
-		ConversationStatusProperties string `json:"conversationstatusproperties"` // ?
-		OneToOneThreadId             string `json:"onetoonethreadid"`             // ?
-		LastImReceivedTime           string `json:"lastimreceivedtime"`           // ?
-		ConsumptionHorizon           string `json:"consumptionhorizon"`           // ?
-		ConversationStatus           string `json:"conversationstatus"`           // ?
-		IsEmptyConversation          string `json:"isemptyconversation"`          // ?
-	} `json:"properties"`
-	LastMessage               LastMessage `json:"lastMessage"`
-	Messages                  string      `json:"message"`
-	LastUpdatedMessageId      int64       `json:"lastUpdatedMessageId"`
-	LastUpdatedMessageVersion int64       `json:"lastUpdatedMessageVersion"`
-	Resource                  Resource    `json:"resource"`
-	Time                      string      `json:"time"`
-}
-
 type TopicContent struct {
 	XMLName  xml.Name `xml:"topicupdate"` //
+	EventTime string `xml:"eventtime"` //
+	Initiator string `xml:"initiator"`
+	Value string `xml:"value"`
+}
+
+type PictureContent struct {
+	XMLName  xml.Name `xml:"pictureupdate"` //
 	EventTime string `xml:"eventtime"` //
 	Initiator string `xml:"initiator"`
 	Value string `xml:"value"`
@@ -110,9 +124,9 @@ type Resource struct {
 	ThreadTopic           string      `json:"threadtopic"`
 	ContentFormat         string      `json:"contentformat"`
 	Id                    string      `json:"id"`
-	Jid                   string      `json:"jid"` // conversation id
-	SendId                string      `json:"sendid"`
-	Timestamp             int64       `json:"timestamp"`
+	Jid                   string      `json:"jid"`       // conversation id(custom filed)
+	SendId                string      `json:"sendid"`    // send id id(custom filed)
+	Timestamp             int64       `json:"timestamp"` // custom filed
 }
 
 func (Re *Resource)GetFromMe (ce *Conn) bool{
@@ -156,13 +170,13 @@ type ConversationsClient struct {
 /**
 This returns an array of conversations that the current user has most recently interacted with
 */
-func (c *Conn) GetConversations(apiHost string, skypeToken string, regToken string) (err error) {
+func (c *Conn) GetConversations() (err error) {
 	//API_MSGSHOST
-	path := fmt.Sprintf("%s/v1/users/ME/conversations", apiHost)
+	path := fmt.Sprintf("%s/v1/users/ME/conversations", c.LoginInfo.LocationHost)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + skypeToken,
-		"RegistrationToken": regToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		"BehaviorOverride":  "redirectAs404",
 		"Sec-Fetch-Dest":    "empty",
 		"Sec-Fetch-Mode":    "cors",
@@ -181,6 +195,7 @@ func (c *Conn) GetConversations(apiHost string, skypeToken string, regToken stri
 	data := &ConversationsList{}
 	json.Unmarshal([]byte(body), data)
 	c.ConversationsList = data
+	c.updateChats(data.Conversations)
 	return
 }
 

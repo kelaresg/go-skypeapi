@@ -144,6 +144,16 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 					}
 				}
 			}
+		} else if message.Resource.MessageType == "ThreadActivity/PictureUpdate" {
+			for _, h := range handlers {
+				if x, ok := h.(ChatUpdateHandler); ok {
+					if wac.shouldCallSynchronously(h) {
+						x.HandleChatUpdate(message.Resource)
+					} else {
+						go x.HandleChatUpdate(message.Resource)
+					}
+				}
+			}
 		} else if message.Resource.MessageType == "Control/Typing" {
 
 		} else if message.Resource.MessageType == "Control/ClearTyping" {
@@ -176,7 +186,7 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 		//	fmt.Printf("unknown message type1: %+v", message)
 		//	fmt.Println()
 		//}
-	} else if message.ResourceType == "ThreadUpdate" {
+	} else if message.ResourceType == "ConversationUpdate" {
 
 	} else {
 		fmt.Println()
