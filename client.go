@@ -75,21 +75,24 @@ func NewConn() (cli *Conn, err error) {
 /**
 login Skype by web auth
 */
-func (c *Conn) Login(usernanme, password string) (err error) {
+func (c *Conn) Login(username, password string) (err error) {
 	MSPRequ, MSPOK, PPFT, err := c.getParams()
 
 	if err != nil {
 		return errors.New("params get error")
 	}
-	//发送密码登录等
-	_, err, t_value := c.sendCreds(usernanme, password, MSPRequ, MSPOK, PPFT)
-	if err != nil {
-		return errors.New("sendCreds get error")
+	//1. send username password
+	_, err, tValue := c.sendCred(username, password, MSPRequ, MSPOK, PPFT)
+	if err != nil || tValue == "" {
+		return errors.New("sendCred get error")
 	}
-	//最后以部获得   token RegistrationExpires
-	err = c.getToken(t_value)
+	if tValue == "" {
+		return errors.New("Please confirm that your username/password is entered correctly ")
+	}
+	//2. get token and RegistrationExpires
+	err = c.getToken(tValue)
 	if err != nil {
-		return errors.New("token get error")
+		return
 	}
 	//获得用户SkypeRegistrationTokenProvider
 	c.LoginInfo.LocationHost = API_MSGSHOST
@@ -157,7 +160,6 @@ func (c *Conn) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
 		"endpointFeatures": "Agent",
 	}
 	params, _ := json.Marshal(data)
-	//fmt.Println("https://client-s.gateway.messenger.live.com/v1/users/" + DEFAULT_USER + "/endpoints")
 	fmt.Println(c.LoginInfo.LocationHost + "/v1/users/" + DEFAULT_USER + "/endpoints")
 	registrationTokenStr, location, err := req.HttpPostRegistrationToken(c.LoginInfo.LocationHost+"/v1/users/"+DEFAULT_USER+"/endpoints", string(params), header)
 	println("registrationTokenStr: ", registrationTokenStr)
@@ -202,10 +204,8 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 	c.LoginInfo.LocationHost = locationHost
 	c.LoginInfo.RegistrationToken = registrationToken
 	c.LoginInfo.RegistrationExpires = registrationExpires
-	//println("new registrationToken2: ", registrationTokenStr)
 	if strings.Index(registrationTokenStr, "endpointId=") == -1 {
 		registrationTokenStr = registrationTokenStr + "; endpointId=" + c.LoginInfo.EndpointId
-		//println("new registrationToken3: ", registrationTokenStr)
 	} else {
 		c.LoginInfo.RegistrationtokensStr = registrationTokenStr
 	}
@@ -228,10 +228,8 @@ func (c *Conn) Subscribes() {
 		"template":    "raw",
 		"channelType": "httpLongPoll",
 	}
-	// fmt.Println("c.LoginInfo.RegistrationtokensStr1: ", c.LoginInfo.RegistrationtokensStr)
 	header := map[string]string{
 		"Authentication": "skypetoken=" + c.LoginInfo.SkypeToken,
-		//"RegistrationToken":  "registrationToken=" + c.LoginInfo.RegistrationToken+"; expires=" + c.LoginInfo.RegistrationExpires + "; endpointId=" + c.LoginInfo.EndpointId,
 		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
@@ -247,11 +245,8 @@ func (c *Conn) Poll() {
 		timeout: 60,
 	}
 	pollPath := c.PollPath()
-	// fmt.Println("c.LoginInfo.RegistrationtokensStr2: ", c.LoginInfo.RegistrationtokensStr)
-	//return
 	header := map[string]string{
 		"Authentication": "skypetoken=" + c.LoginInfo.SkypeToken,
-		//"RegistrationToken":  "registrationToken=" + c.LoginInfo.RegistrationToken+"; expires=" + c.LoginInfo.RegistrationExpires + "; endpointId=" + c.LoginInfo.EndpointId,
 		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
@@ -330,11 +325,16 @@ func (c *Conn) getToken(t string) (err error) {
 		SkypeToken:   token,
 		SkypeExpires: exprise,
 	}
+	if err != nil {
+		return
+	}
+	if token == "" {
+		return errors.New("can't get token")
+	}
 	return
 }
 
-func (c *Conn) sendCreds(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, t_value string) {
-	// # Now pass the login credentials over.
+func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
 	params_map := url.Values{}
 	params_map.Set("wa", "wsignin1.0")
 	params_map.Set("wp", "MBI_SSL")
@@ -351,7 +351,7 @@ func (c *Conn) sendCreds(username, pwd, MSPRequ, MSPOK, PPFT string) (body strin
 	params_map.Add("passwd", pwd)
 	params_map.Add("PPFT", PPFT)
 	query, _ := json.Marshal(params_map)
-	body, err, _, t_value = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), params_map, string(query), cookies, "t")
+	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), params_map, string(query), cookies, "t")
 	return
 }
 

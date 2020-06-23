@@ -132,7 +132,7 @@ func (req *Request) requestWithCookies(method string, reqUrl string, reqBody io.
 	return
 }
 
-func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, id string, selector string) (body string, err error, r io.Reader, id_value string) {
+func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, id string, selector string) (body string, err error, r io.Reader, tValue string) {
 	u, err := gurl.ParseURL(reqUrl, 2)
 	if err != nil {
 		fmt.Println(err)
@@ -203,7 +203,7 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 		doc.Find(selector).Each(func(_ int, s *goquery.Selection) {
 			idt, _ := s.Attr("id")
 			if idt == id {
-				id_value, _ = s.Attr("value")
+				tValue, _ = s.Attr("value")
 			}
 
 		})
@@ -314,9 +314,9 @@ func (req *Request) HttpPostJson(path string, params string, cookies map[string]
 /**
 add post request with params and data
 */
-func (req *Request) HttpPostWithParamAndDataWithIdt(path string, params url.Values, data string, cookies map[string]string, id string) (body string, err error, res io.Reader, t_value string) {
+func (req *Request) HttpPostWithParamAndDataWithIdt(path string, params url.Values, data string, cookies map[string]string, id string) (body string, err error, res io.Reader, tValue string) {
 	reqUrl := fmt.Sprintf("%s?%s", path, gurl.BuildQuery(params))
-	body, err, res, t_value = req.requestWithCookiesReturnIdValue("POST", reqUrl, strings.NewReader(data), cookies, id, "input")
+	body, err, res, tValue = req.requestWithCookiesReturnIdValue("POST", reqUrl, strings.NewReader(data), cookies, id, "input")
 	return
 }
 
