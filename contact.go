@@ -2,9 +2,21 @@ package skype
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gogf/gf/encoding/gurl"
+	"net/url"
 	"strings"
+)
+
+type Presence string
+
+const (
+	PresenceOnline  Presence = "Online"
+	PresenceOffline Presence = "Offline"
+	PresenceIdle    Presence = "Idle"
+	PresenceAway    Presence = "Away"
+	PresenceHidden  Presence = "Hidden"
 )
 
 //type Location struct {
@@ -417,4 +429,63 @@ func (c *Conn)ddDeleteUser(skypeToken string, conversationId string, id string, 
 	}
 	fmt.Println("get join url resp: ", body)
 	return
+}
+
+type ContactsStatusRes struct {
+	Responses ContactStatus
+}
+
+type ContactStatus struct {
+	Status  int8
+	Contact string
+	Payload struct {
+		Id                       string   `json:"id"`
+		Type                     string   `json:"type"`
+		SelfLink                 string   `json:"selfLink"`
+		Availability             string   `json:"availability"`
+		Status                   string   `json:"status"`
+		Capabilities             string   `json:"capabilities"`
+		EndpointPresenceDocLinks []string `json:"endpointPresenceDocLinks"`
+	}
+}
+/**
+Get current status of group contacts
+Request URL: https://azcus1-client-s.gateway.messenger.live.com/v1/users/ME/contacts/ALL/presenceDocs/messagingService?cMri=8:live:xxxxxx&cMri=8:xxxxxxx&cMri=8:live:xxxxxx
+Request Method: GET
+RegistrationToken:
+Authentication:
+Origin: https://web.skype.com
+Referer: https://web.skype.com/
+@params
+ids []"8:*****"
+ */
+func (c *Conn)GetContactsCurrentStatus(ids []string) (content *ContactsStatusRes, err error) {
+	if len(ids) < 1 {
+		err = errors.New("ids is empty")
+		return nil, err
+	}
+	path := fmt.Sprintf("%s/v1/users/ME/contacts/ALL/presenceDocs/messagingService", c.LoginInfo.LocationHost)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"BehaviorOverride":  "redirectAs404",
+		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+	}
+	params := url.Values{}
+	for _, id := range ids {
+		params.Set("cMri", id)
+	}
+
+	body, err := req.HttpGetWitHeaderAndCookiesJson(path, params, "", nil, headers)
+	if err != nil {
+		fmt.Println("GetContactsCurrentStatus err: ", err)
+	}
+	content = &ContactsStatusRes{}
+	err = json.Unmarshal([]byte(body), content)
+	if err != nil {
+		fmt.Println("GetContactsCurrentStatus Unmarshal err: ", err)
+	}
+	fmt.Println("GetContactsCurrentStatus resp: ", body)
+	return content, nil
 }

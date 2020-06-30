@@ -39,6 +39,12 @@ type TextMessageHandler interface {
 	HandleTextMessage(message Resource)
 }
 
+//messagetype: RichText/UriObject
+type ImageMessageHandler interface {
+	Handler
+	HandleImageMessage(message Resource)
+}
+
 //messagetype:
 type VideoMessageHandler interface {
 	Handler
@@ -60,7 +66,7 @@ type EndpointPresenceHandler interface {
 //A user”s availability has changed
 type UserPresenceHandler interface {
 	Handler
-	HandlePresence()
+	HandlePresence(message Resource)
 }
 
 //A user”s availability has changed
@@ -75,36 +81,36 @@ The provided handler must at least implement the Handler interface. Additionally
 handlers(TextMessageHandler, ImageMessageHandler) are optional. At runtime it is checked if they are implemented
 and they are called if so and needed.
 */
-func (wac *Conn) AddHandler(handler Handler) {
-	wac.handler = append(wac.handler, handler)
+func (c *Conn) AddHandler(handler Handler) {
+	c.handler = append(c.handler, handler)
 }
 
 // RemoveHandler removes a handler from the list of handlers that receive dispatched messages.
-func (wac *Conn) RemoveHandler(handler Handler) bool {
+func (c *Conn) RemoveHandler(handler Handler) bool {
 	i := -1
-	for k, v := range wac.handler {
+	for k, v := range c.handler {
 		if v == handler {
 			i = k
 			break
 		}
 	}
 	if i > -1 {
-		wac.handler = append(wac.handler[:i], wac.handler[i+1:]...)
+		c.handler = append(c.handler[:i], c.handler[i+1:]...)
 		return true
 	}
 	return false
 }
 
 // RemoveHandlers empties the list of handlers that receive dispatched messages.
-func (wac *Conn) RemoveHandlers() {
-	wac.handler = make([]Handler, 0)
+func (c *Conn) RemoveHandlers() {
+	c.handler = make([]Handler, 0)
 }
 
-func (wac *Conn) handle(message Conversation) {
-	wac.handleWithCustomHandlers(message, wac.handler)
+func (c *Conn) handle(message Conversation) {
+	c.handleWithCustomHandlers(message, c.handler)
 }
 
-func (wac *Conn) shouldCallSynchronously(handler Handler) bool {
+func (c *Conn) shouldCallSynchronously(handler Handler) bool {
 	return false
 }
 
@@ -117,9 +123,16 @@ type ChatUpdateHandler interface {
 	HandleChatUpdate(message Resource)
 }
 
-func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler) {
-
+func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler) {
+	//switch m := message.(type) {
 	if message.ResourceType == "NewMessage" {
+		//resource := Resource{}
+		//resource, ok := (message.Resource).(Resource)
+		//if !ok {
+		//	fmt.Println("handleWithCustomHandlers: not resource type")
+		//	return
+		//}
+		//_ = json.Unmarshal([]byte(message.Resource), &resource)
 		ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
 		t, _ := time.Parse(time.RFC3339,message.Resource.ComposeTime)
 		message.Resource.Jid = ConversationLinkArr[1]
@@ -127,17 +140,47 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 		if message.Resource.MessageType == "RichText" || message.Resource.MessageType == "Text" {
 			for _, h := range handlers {
 				if x, ok := h.(TextMessageHandler); ok {
-					if wac.shouldCallSynchronously(h) {
+					if c.shouldCallSynchronously(h) {
 						x.HandleTextMessage(message.Resource)
 					} else {
 						go x.HandleTextMessage(message.Resource)
 					}
 				}
 			}
+		} else if message.Resource.MessageType == "RichText/UriObject" {
+			for _, h := range handlers {
+				if x, ok := h.(ImageMessageHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleImageMessage(message.Resource)
+					} else {
+						go x.HandleImageMessage(message.Resource)
+					}
+				}
+			}
+		} else if message.Resource.MessageType == "RichText/Media_GenericFile" {
+			for _, h := range handlers {
+				if x, ok := h.(ImageMessageHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleImageMessage(message.Resource)
+					} else {
+						go x.HandleImageMessage(message.Resource)
+					}
+				}
+			}
+		} else if message.Resource.MessageType == "RichText/Media_Album" {
+			for _, h := range handlers {
+				if x, ok := h.(ChatUpdateHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleChatUpdate(message.Resource)
+					} else {
+						go x.HandleChatUpdate(message.Resource)
+					}
+				}
+			}
 		} else if message.Resource.MessageType == "ThreadActivity/TopicUpdate" {
 			for _, h := range handlers {
 				if x, ok := h.(ChatUpdateHandler); ok {
-					if wac.shouldCallSynchronously(h) {
+					if c.shouldCallSynchronously(h) {
 						x.HandleChatUpdate(message.Resource)
 					} else {
 						go x.HandleChatUpdate(message.Resource)
@@ -147,7 +190,7 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 		} else if message.Resource.MessageType == "ThreadActivity/PictureUpdate" {
 			for _, h := range handlers {
 				if x, ok := h.(ChatUpdateHandler); ok {
-					if wac.shouldCallSynchronously(h) {
+					if c.shouldCallSynchronously(h) {
 						x.HandleChatUpdate(message.Resource)
 					} else {
 						go x.HandleChatUpdate(message.Resource)
@@ -164,6 +207,12 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 			fmt.Println()
 		}
 	} else if message.ResourceType == "ThreadUpdate" {
+		//resource := Resource{}
+		//_ = json.Unmarshal([]byte(message.Resource), &resource)
+		//resource, ok := (message.Resource).(Resource)
+		//if !ok {
+		//	return
+		//}
 		ConversationLinkArr := strings.Split(message.ResourceLink, "/threads/")
 		t, _ := time.Parse(time.RFC3339, message.Time)
 		message.Resource.Jid = ConversationLinkArr[1]
@@ -188,7 +237,30 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 		//}
 	} else if message.ResourceType == "ConversationUpdate" {
 
-	} else {
+	} else if message.ResourceType == "UserPresence" {
+		ResourceLinkArr := strings.Split(message.ResourceLink, "/contacts/")
+		if len(ResourceLinkArr) < 2 {
+			return
+		}
+ 		LinkArr := strings.Split(ResourceLinkArr[1], "/presenceDocs/")
+		t, _ := time.Parse(time.RFC3339, message.Time)
+		if len(LinkArr) < 1 {
+			return
+		}
+		message.Resource.SendId = LinkArr[0]
+		message.Resource.Timestamp = t.Unix()
+		if message.Resource.Type == "UserPresenceDoc" {
+			for _, h := range handlers {
+				if x, ok := h.(UserPresenceHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandlePresence(message.Resource)
+					} else {
+						go x.HandlePresence(message.Resource)
+					}
+				}
+			}
+		}
+	}else {
 		fmt.Println()
 		fmt.Printf("unknown message type2: %+v", message)
 		fmt.Println()
@@ -226,7 +298,7 @@ func (wac *Conn) handleWithCustomHandlers(message Conversation, handlers []Handl
 	//}
 }
 
-func (wac *Conn) handleChats(chats interface{}) {
+func (c *Conn) handleChats(chats interface{}) {
 
 	//var chatList []Chat
 	//c, ok := chats.([]interface{})

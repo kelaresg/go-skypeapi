@@ -38,13 +38,13 @@ type MessageClient struct {
 	SendFileBack    *SendMessageBack
 }
 
-func (m *Conn) SendMsg(chatThreadId, content, clientMessageId string, output chan<- error) (err error) {
+func (c *Conn) SendMsg(chatThreadId, content, clientMessageId string, output chan<- error) (err error) {
 	//API_MSGSHOST chat thread identifier
-	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", m.LoginInfo.LocationHost, chatThreadId)
+	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, chatThreadId)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + m.LoginInfo.SkypeToken,
-		"RegistrationToken": m.LoginInfo.RegistrationtokensStr,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 	}
 	//currentTimeNanoStr := strconv.FormatInt(time.Now().UnixNano(), 10)
 	//currentTimeNanoStr = currentTimeNanoStr[:len(currentTimeNanoStr)-3]
@@ -77,7 +77,7 @@ func (m *Conn) SendMsg(chatThreadId, content, clientMessageId string, output cha
 `type: "pish/image"
 `filename: "gh_e12cb68793e0_258.jpg"
 */
-func (m *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int) (err error) {
+func (c *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int) (err error) {
 	meta := map[string]interface{}{
 		"permissions": map[string]interface{}{
 			chatThreadId: []string{"read"},
@@ -96,7 +96,7 @@ func (m *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int
 	}
 	headers := map[string]string{
 		"X-Client-Version": "0/0.0.0.0",
-		"Authorization":    "skype_token " + m.LoginInfo.SkypeToken,
+		"Authorization":    "skype_token " + c.LoginInfo.SkypeToken,
 	}
 	data, _ := json.Marshal(meta)
 	req := Request{timeout: 30}
@@ -177,18 +177,18 @@ func (m *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int
 			"amsreferences": []string{bodyfile_one_d.ID},
 		}
 		headers1 := map[string]string{
-			"Authentication":    "skypetoken=" + m.LoginInfo.SkypeToken,
-			"RegistrationToken": m.LoginInfo.RegistrationtokensStr,
+			"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+			"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		}
 		requestBody1, _ := json.Marshal(requestBody)
-		surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", m.LoginInfo.LocationHost, chatThreadId)
+		surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, chatThreadId)
 		body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(requestBody1), nil, headers1)
 		if err != nil {
 			return err
 		}
 		back := &SendMessageBack{}
 		json.Unmarshal([]byte(body), back)
-		m.SendFileBack = back
+		c.SendFileBack = back
 	}
 	return
 }

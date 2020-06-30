@@ -14,11 +14,12 @@ func newStore() *Store {
 
 func (c *Conn) updateContacts(contacts []Contact) {
 	for _, contact := range contacts {
-		PersonId := contact.PersonId + "@s.skype.net"
-		c.Store.Contacts[PersonId] = contact
+		contact.PersonId = contact.PersonId + "@s.skype.net"
+		c.Store.Contacts[contact.PersonId] = contact
 	}
 }
 
+// chats includes group conversation and private conversation
 func (c *Conn) updateChats(chats []Conversation) {
 	//ch, ok := chats.([]interface{})
 	//if !ok {
@@ -30,6 +31,9 @@ func (c *Conn) updateChats(chats []Conversation) {
 		//if !ok {
 		//	continue
 		//}
-		c.Store.Chats[chat.Id] = chat
+		id, ok := chat.Id.(string)
+		if ok {
+			c.Store.Chats[id] = chat
+		}
 	}
 }

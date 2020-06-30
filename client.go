@@ -46,18 +46,18 @@ type UserProfile struct {
 	City        string   `json:"city"`
 	Country     string   `json:"country"`
 	Emails      []string `json:"emails"`
-	Firstname   string   `json:"firstname"`
+	FirstName   string   `json:"firstname"`
 	Gender      string   `json:"gender"`
 	Homepage    string   `json:"homepage"`
-	Jobtitle    string   `json:"jobtitle"`
+	JobTitle    string   `json:"jobtitle"`
 	Language    string   `json:"language"`
-	Lastname    string   `json:"lastname"`
+	LastName    string   `json:"lastname"`
 	Mood        string   `json:"mood"`
 	PhoneHome   string   `json:"phone_home"`
 	PhoneOffice string   `json:"phone_office"`
 	Province    string   `json:"province"`
 	RichMood    string   `json:"rich_mood"`
-	Username    string   `json:"username"`
+	Username    string   `json:"username"` //live:xxxxxxx
 }
 
 func NewConn() (cli *Conn, err error) {
@@ -229,7 +229,7 @@ func (c *Conn) Subscribes() {
 		"channelType": "httpLongPoll",
 	}
 	header := map[string]string{
-		"Authentication": "skypetoken=" + c.LoginInfo.SkypeToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
@@ -240,13 +240,56 @@ func (c *Conn) Subscribes() {
 	}
 }
 
+/**
+@params
+ids []8:xxxxxx
+ */
+func (c *Conn) SubscribeUsers(ids []string) {
+	fmt.Println("SubscribeUsers ids", ids)
+	if len(ids) < 1 {
+		return
+	}
+
+	req := Request{
+		timeout: 60,
+	}
+	subscribePath := c.SubscribePath() + "/0?name=interestedResources"
+	data := map[string][]string{
+		"interestedResources": {
+			"/v1/threads/ALL",
+			//"/v1/users/ME/contacts/ALL",
+			"/v1/users/ME/conversations/ALL/messages",
+			"/v1/users/ME/conversations/ALL/properties",
+		},
+	}
+	for _, id := range ids {
+		subStr := "/v1/users/ME/contacts/" + id
+		data["interestedResources"] = append(data["interestedResources"], subStr)
+	}
+
+	fmt.Println()
+	fmt.Println()
+	fmt.Printf("SubscribeUsers data %+v", data)
+
+	header := map[string]string{
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"BehaviorOverride":  "redirectAs404",
+	}
+	params, _ := json.Marshal(data)
+	_, err, _ := req.request("PUT", subscribePath, strings.NewReader(string(params)), nil, header)
+	if err != nil {
+		fmt.Println("SubscribeUsers request err: ", err)
+	}
+}
+
 func (c *Conn) Poll() {
 	req := Request{
 		timeout: 60,
 	}
 	pollPath := c.PollPath()
 	header := map[string]string{
-		"Authentication": "skypetoken=" + c.LoginInfo.SkypeToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
@@ -305,9 +348,9 @@ func (c *Conn) SubscribePath() (path string) {
 func (c *Conn) getToken(t string) (err error) {
 
 	// # Now pass the login credentials over.
-	params_map := url.Values{}
-	params_map.Set("client_id", "578134")
-	params_map.Set("redirect_uri", "https://web.skype.com")
+	paramsMap := url.Values{}
+	paramsMap.Set("client_id", "578134")
+	paramsMap.Set("redirect_uri", "https://web.skype.com")
 
 	req := Request{
 		timeout: 30,
@@ -320,10 +363,10 @@ func (c *Conn) getToken(t string) (err error) {
 		"redirect_uri": "https://web.skype.com",
 	}
 	query, _ := json.Marshal(data)
-	_, err, _, token, exprise := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(params_map)), string(query))
+	_, err, _, token, expires := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(paramsMap)), string(query))
 	c.LoginInfo = &LoginInfo{
 		SkypeToken:   token,
-		SkypeExpires: exprise,
+		SkypeExpires: expires,
 	}
 	if err != nil {
 		return
@@ -335,10 +378,10 @@ func (c *Conn) getToken(t string) (err error) {
 }
 
 func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
-	params_map := url.Values{}
-	params_map.Set("wa", "wsignin1.0")
-	params_map.Set("wp", "MBI_SSL")
-	params_map.Set("wreply", "https://lw.skype.com/login/oauth/proxy?client_id=578134&site_name=lw.skype.com&redirect_uri=https%3A%2F%2Fweb.skype.com%2F")
+	paramsMap := url.Values{}
+	paramsMap.Set("wa", "wsignin1.0")
+	paramsMap.Set("wp", "MBI_SSL")
+	paramsMap.Set("wreply", "https://lw.skype.com/login/oauth/proxy?client_id=578134&site_name=lw.skype.com&redirect_uri=https%3A%2F%2Fweb.skype.com%2F")
 	req := Request{
 		timeout: 30,
 	}
@@ -347,11 +390,11 @@ func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string
 		"MSPOK":   MSPOK,
 		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
 	}
-	params_map.Add("login", username)
-	params_map.Add("passwd", pwd)
-	params_map.Add("PPFT", PPFT)
-	query, _ := json.Marshal(params_map)
-	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), params_map, string(query), cookies, "t")
+	paramsMap.Add("login", username)
+	paramsMap.Add("passwd", pwd)
+	paramsMap.Add("PPFT", PPFT)
+	query, _ := json.Marshal(paramsMap)
+	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), paramsMap, string(query), cookies, "t")
 	return
 }
 
@@ -359,39 +402,36 @@ func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
 	params := url.Values{}
 	params.Set("client_id", "578134")
 	params.Set("redirect_uri", "https://web.skype.com")
-	if err != nil {
-		return "", "", "", errors.New("parameters is not right！")
-	}
 	req := Request{
 		timeout: 30,
 	}
 	//第一步, 302重定向跳转
 	//fmt.Println(fmt.Sprintf("%s/oauth/microsoft", API_LOGIN))
-	redirect_url, err, _ := req.HttpGetJson(fmt.Sprintf("%s/oauth/microsoft", API_LOGIN), params)
+	redirectUrl, err, _ := req.HttpGetJson(fmt.Sprintf("%s/oauth/microsoft", API_LOGIN), params)
 	//请求跳转的链接
 	if err != nil {
 		return "", "", "", errors.New("error redirect url at first step")
 	}
-	lgoin_srf_param := url.Values{}
-	login_srf_body, err, login_srf_response := req.HttpGetJsonBackResponse(redirect_url, lgoin_srf_param)
+	loginSpfParam := url.Values{}
+	loginSrfBody, err, loginSrfResponse := req.HttpGetJsonBackResponse(redirectUrl, loginSpfParam)
 	//从 内容中匹配出来  PPFT
 	buf := `<input.*?name="PPFT".*?value="(.*?)` + `\"`
 	reg := regexp.MustCompile(buf)
-	ppfts := reg.FindAllString(login_srf_body, -1)
-	var ppft_byte []byte
-	var ppft_str string
+	ppfts := reg.FindAllString(loginSrfBody, -1)
+	var ppftByte []byte
+	var ppftStr string
 	if len(ppfts) > 0 {
 		for k, v := range ppfts {
 			if k == 0 {
 				ppftbbf := `value=".*?"`
 				ppftreg := regexp.MustCompile(ppftbbf)
 				ppftsppft := ppftreg.FindAllString(v, -1)
-				ppft_byte = []byte(ppftsppft[0])[7:]
-				ppft_str = string(ppft_byte[0 : len(ppft_byte)-1])
+				ppftByte = []byte(ppftsppft[0])[7:]
+				ppftStr = string(ppftByte[0 : len(ppftByte)-1])
 			}
 		}
 	}
-	for _, v := range login_srf_response.Cookies() {
+	for _, v := range loginSrfResponse.Cookies() {
 		if v.Name == "MSPRequ" {
 			MSPRequ = v.Value
 		}
@@ -400,5 +440,5 @@ func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
 		}
 	}
 	//发送账号密码  判定是否存在次账号
-	return MSPRequ, MSPOK, ppft_str, nil
+	return MSPRequ, MSPOK, ppftStr, nil
 }

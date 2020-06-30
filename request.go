@@ -30,7 +30,7 @@ func (req *Request) getAuthorization() (sign string, dateTime string, err error)
 	return
 }
 
-func (req *Request) requestReturnResopnse(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (response *http.Response, err error) {
+func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (response *http.Response, err error) {
 	u, err := gurl.ParseURL(reqUrl, 2)
 	if err != nil {
 		fmt.Println(err)
@@ -67,8 +67,8 @@ func (req *Request) requestReturnResopnse(method string, reqUrl string, reqBody 
 		req1.Header.Set(k, v)
 	}
 	if len(cookies) > 0 {
-		for c_k, c_v := range cookies {
-			req1.Header.Set(c_k, c_v)
+		for cK, cV := range cookies {
+			req1.Header.Set(cK, cV)
 		}
 	}
 	response, err = client.Do(req1)
@@ -83,13 +83,13 @@ func (req *Request) requestReturnResopnse(method string, reqUrl string, reqBody 
 底层的请求封装
 */
 func (req *Request) request(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (body string, err error, status int) {
-	resp, err := req.requestReturnResopnse(method, reqUrl, reqBody, cookies, header)
+	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, cookies, header)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
 	content, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(" request body", resp.Request)
+	//fmt.Println(" request body", resp.Request)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -111,7 +111,7 @@ func (req *Request) request(method string, reqUrl string, reqBody io.Reader, coo
  * request can return headers
  */
 func (req *Request) requestWithCookies(method string, reqUrl string, reqBody io.Reader, cookies map[string]string) (body string, err error, response *http.Response) {
-	resp, err := req.requestReturnResopnse(method, reqUrl, reqBody, cookies, nil)
+	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, cookies, nil)
 	if err != nil {
 		return
 	}
@@ -173,19 +173,19 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 	//add other cookie
 	MaxAge := time.Hour * 24 / time.Second
 	if len(cookies) > 0 {
-		cookiess := []*http.Cookie{}
+		var newCookies []*http.Cookie
 		jar, _ := cookiejar.New(nil)
-		for c_k, c_v := range cookies {
-			cookiess = append(cookiess, &http.Cookie{
-				Name:     c_k,
-				Value:    c_v,
+		for cK, cV := range cookies {
+			newCookies = append(newCookies, &http.Cookie{
+				Name:     cK,
+				Value:    cV,
 				Path:     "/",
 				Domain:   defaultDomain,
 				MaxAge:   int(MaxAge),
 				HttpOnly: false,
 			})
 		}
-		jar.SetCookies(req1.URL, cookiess)
+		jar.SetCookies(req1.URL, newCookies)
 		client.Jar = jar
 	}
 	resp, err := client.Do(req1)
@@ -228,7 +228,7 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 底层的请求封装
 */
 func (req *Request) requestWithLogininfo(method string, reqUrl string, reqBody io.Reader) (body string, err error, status int, skypetken, expires_in string) {
-	resp, err := req.requestReturnResopnse(method, reqUrl, reqBody, nil, nil)
+	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, nil, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -322,7 +322,7 @@ func (req *Request) HttpPostWithParamAndDataWithIdt(path string, params url.Valu
 
 func (req *Request) HttpPostRegistrationToken(path string, data string, header map[string]string) (registrationtoken, location string, err error) {
 	//获得  resgistration token 信息
-	resp, err := req.requestReturnResopnse("POST", path, strings.NewReader(data), nil, header)
+	resp, err := req.requestReturnResponse("POST", path, strings.NewReader(data), nil, header)
 	if err != nil {
 		return
 	}
@@ -362,7 +362,7 @@ func (req *Request) HttpPutWitHeaderAndCookiesJson (path string, params url.Valu
 	if len(params) >0 {
 		reqUrl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(params))
 	}
-	resp, err := req.requestReturnResopnse("PUT", reqUrl, strings.NewReader(data), cookies, headers)
+	resp, err := req.requestReturnResponse("PUT", reqUrl, strings.NewReader(data), cookies, headers)
 	if err != nil {
 		return
 	}

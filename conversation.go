@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -38,13 +39,12 @@ type JoinToConInfo struct {
 	Resource string
 }
 
-
 type Conversation struct {
 	TargetLink                string                 `json:"targetLink"`
 	ResourceLink              string                 `json:"resourceLink"`
 	ResourceType              string                 `json:"resourceType"`
 	ThreadProperties          ThreadProperties       `json:"threadProperties"`
-	Id                        string                 `json:"id"`      //string | int?
+	Id                        interface{}                 `json:"id"`      //string | int?
 	Type                      string                 `json:"type"`    // "Conversation" | string;
 	Version                   int64                  `json:"version"` // a timestamp ? example: 1464030261015
 	Properties                ConversationProperties `json:"properties"`
@@ -52,7 +52,7 @@ type Conversation struct {
 	Messages                  string                 `json:"message"`
 	LastUpdatedMessageId      int64                  `json:"lastUpdatedMessageId"`
 	LastUpdatedMessageVersion int64                  `json:"lastUpdatedMessageVersion"`
-	Resource                  Resource               `json:"resource"`
+	Resource                  Resource           `json:"resource"`
 	Time                      string                 `json:"time"`
 }
 
@@ -90,14 +90,14 @@ type LastMessage struct {
 	From                string `json:"from"`                // ?
 }
 
-type TopicContent struct {
+type ChatTopicContent struct {
 	XMLName  xml.Name `xml:"topicupdate"` //
 	EventTime string `xml:"eventtime"` //
 	Initiator string `xml:"initiator"`
 	Value string `xml:"value"`
 }
 
-type PictureContent struct {
+type ChatPictureContent struct {
 	XMLName  xml.Name `xml:"pictureupdate"` //
 	EventTime string `xml:"eventtime"` //
 	Initiator string `xml:"initiator"`
@@ -119,6 +119,7 @@ type Resource struct {
 	OriginContextId       string      `json:"origincontextid"`
 	OriginalArrivalTime   string      `json:"originalarrivaltime"`
 	AckRequired           string      `json:"ackrequired"`
+	ContentType           string      `json:"contenttype"`
 	IsVideoCall           string      `json:"isVideoCall"` // "FALSE|TRUE"
 	IsActive              bool        `json:"isactive"`
 	ThreadTopic           string      `json:"threadtopic"`
@@ -127,6 +128,84 @@ type Resource struct {
 	Jid                   string      `json:"jid"`       // conversation id(custom filed)
 	SendId                string      `json:"sendid"`    // send id id(custom filed)
 	Timestamp             int64       `json:"timestamp"` // custom filed
+	UserPresence
+	EndpointPresence
+	Amsreferences []string `json:"amsreferences"`
+}
+
+type UserPresence struct {
+	Id                       string   `json:"id"`
+	Type                     string   `json:"type"`
+	SelfLink                 string   `json:"selfLink"`
+	Availability             Presence `json:"availability"`
+	Status                   string   `json:"status"`
+	Capabilities             string   `json:"capabilities"`
+	LastSeenAt               string   `json:"lastSeenAt"`
+	EndpointPresenceDocLinks []string `json:"endpointPresenceDocLinks"`
+}
+
+type EndpointPresence struct {
+	Id         string `json:"id"`
+	Type       string `json:"type"`
+	SelfLink   string `json:"selfLink"`
+	PublicInfo struct {
+		Capabilities     string `json:"capabilities"`
+		NodeInfo         string `json:"nodeInfo"`
+		SkypeNameVersion string `json:"skypeNameVersion"`
+		Typ              string `json:"typ"`
+		Version          string `json:"version"`
+	} `json:"publicInfo"`
+	PrivateInfo struct {
+		EpName string `json:"epname"`
+	} `json:"privateInfo"`
+}
+
+type MediaMessageContent struct {
+	XMLName      xml.Name `xml:"URIObject"` //
+	Uri          string   `xml:"uri,attr"`
+	UrlThumbnail string   `xml:"url_thumbnail,attr"`
+	Type         string   `xml:"type,attr"`
+	DocId        string   `xml:"doc_id,attr"`
+	Width        string   `xml:"width,attr"`
+	Height       string   `xml:"height,attr"`
+	A            struct {
+		Href string `xml:"href,attr"`
+	} `xml:"a"`
+	OriginalName struct {
+		V string `xml:"v,attr"`
+	} `xml:"OriginalName"`
+	FileSize struct {
+		V string `xml:"v,attr"`
+	} `xml:"FileSize"`
+	Meta struct {
+		Type         string `xml:"type,attr"`
+		OriginalName string `xml:"originalName,attr"`
+	} `xml:"meta"`
+}
+
+func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMessage *MediaMessageContent, err error) {
+	mediaMessage = &MediaMessageContent{}
+	err = xml.Unmarshal([]byte(Re.Content), mediaMessage)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var mediaUrl string
+	switch mediaType {
+	case "RichText/UriObject":
+		mediaUrl = mediaMessage.Uri + "/views/imgpsh_mobile_save_anim"
+	case "RichText/Media_GenericFile":
+		mediaUrl = mediaMessage.Uri + "/views/original"
+	}
+
+	fmt.Println("content.A.Href", mediaMessage.Uri)
+	fmt.Println("content.FileSize", mediaMessage.FileSize.V)
+	fileLength, err := strconv.Atoi(mediaMessage.FileSize.V)
+	if err != nil {
+		return nil, nil, err
+	}
+	data, err = Download(mediaUrl, ce, fileLength)
+	return
 }
 
 func (Re *Resource)GetFromMe (ce *Conn) bool{
@@ -208,7 +287,7 @@ func (c *Conn) GetConversation(id string) (conversation *Conversation, err error
 	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,// "skypetoken=" + skypeToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken, // "skypetoken=" + skypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		"BehaviorOverride":  "redirectAs404",
 		"Sec-Fetch-Dest":    "empty",
@@ -259,6 +338,44 @@ func (c *Conn) GetConversationThreads(apiHost string, skypeToken string, regToke
 	fmt.Println(params)
 	body, err := req.HttpGetWitHeaderAndCookiesJson(path, params, "", nil, headers)
 	fmt.Println("conversation detail: ", body)
+	return
+}
+
+
+type ConsumptionHorizonsRsp struct {
+	Id                  string               `json:"id"`
+	Version             string               `json:"version"`
+	ConsumptionHorizons []ConsumptionHorizon `json:"consumptionhorizons"`
+}
+type ConsumptionHorizon struct {
+	ConsumptionHorizon string `json:"consumptionhorizon"`
+	Id                 string `json:"id"`
+}
+/**
+Fetch all members in conversation
+@params
+conId : conversation id
+*/
+func (c *Conn) GetConsumptionHorizons(conId string) (content *ConsumptionHorizonsRsp, err error) {
+	path := fmt.Sprintf("%s/v1/threads/%s/consumptionhorizons", c.LoginInfo.LocationHost, conId)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"BehaviorOverride":  "redirectAs404",
+		"Sec-Fetch-Dest":    "empty",
+		"Sec-Fetch-Mode":    "cors",
+		"Sec-Fetch-Site":    "cross-site",
+	}
+	for k, v := range headers {
+		fmt.Println(k, ":", v)
+	}
+
+	body, err := req.HttpGetWitHeaderAndCookiesJson(path, nil, "", nil, headers)
+	content = &ConsumptionHorizonsRsp{}
+	err = json.Unmarshal([]byte(body), content)
+	fmt.Println("GetConsumptionHorizons detail: ", body)
 	return
 }
 
@@ -386,3 +503,5 @@ func (c *Conn)JoinConByCode(skypeToken string, regToken string, joinUrl string) 
 	json.Unmarshal([]byte(body), &conInfo)
 	return
 }
+
+
