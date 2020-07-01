@@ -71,6 +71,15 @@ func (c *Conn) SendMsg(chatThreadId string, content *SendMessage, output chan<- 
 	case "m.video":
 		fmt.Println("message SendMsg type m.video: ", content.Type)
 		err = c.SendFile(chatThreadId, content)
+	case "m.audio":
+		fmt.Println("message SendMsg type m.audio: ", content.Type)
+		err = c.SendFile(chatThreadId, content)
+	case "m.file":
+		fmt.Println("message SendMsg type m.file: ", content.Type)
+		err = c.SendFile(chatThreadId, content)
+	case "m.location":
+		fmt.Println("message SendMsg type m.location: ", content.Type)
+		//err = c.SendFile(chatThreadId, content)
 	default:
 		err = errors.New("send to skype(unknown message type)")
 	}
