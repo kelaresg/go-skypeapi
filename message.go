@@ -4,10 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"strconv"
-	"time"
 )
 
 const DEFAULT_USER string = "ME"
@@ -38,7 +34,56 @@ type MessageClient struct {
 	SendFileBack    *SendMessageBack
 }
 
-func (c *Conn) SendMsg(chatThreadId, content, clientMessageId string, output chan<- error) (err error) {
+
+type SendMessage struct {
+	Jid string //receiver id(conversation id)
+	ClientMessageId string
+	Timestamp int64
+	Type string
+	*SendTextMessage
+	*SendMediaMessage
+}
+
+type SendTextMessage struct {
+	Content string
+}
+
+type SendMediaMessage struct {
+	FileName string
+	FileType string
+	FileSize string
+	RawData []byte
+	Duration int
+}
+
+func (c *Conn) SendMsg(chatThreadId string, content *SendMessage, output chan<- error) (err error) {
+	fmt.Println("message SendMsg type: ", content.Type)
+	switch content.Type {
+	case "m.text":
+		err = c.SendText(chatThreadId, content)
+	case "m.emote":
+		err = c.SendText(chatThreadId, content)
+	case "m.notice":
+		err = c.SendText(chatThreadId, content)
+	case "m.image":
+		fmt.Println("message SendMsg type m.image: ", content.Type)
+		err = c.SendFile(chatThreadId, content)
+	case "m.video":
+		fmt.Println("message SendMsg type m.video: ", content.Type)
+		err = c.SendFile(chatThreadId, content)
+	default:
+		err = errors.New("send to skype(unknown message type)")
+	}
+
+	if err != nil {
+		output <- fmt.Errorf("message sending responded with %d", err)
+	} else {
+		output <- nil
+	}
+	return
+}
+
+func (c *Conn) SendText(chatThreadId string, content *SendMessage) (err error) {
 	//API_MSGSHOST chat thread identifier
 	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, chatThreadId)
 	req := Request{timeout: 30}
@@ -51,10 +96,10 @@ func (c *Conn) SendMsg(chatThreadId, content, clientMessageId string, output cha
 	//clientMessageId := currentTimeNanoStr + fmt.Sprintf("%04v", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(10000))
 	data := map[string]interface{}{
 		"contenttype":     "text",
-		"clientmessageid": clientMessageId, // A large integer (~20 digits)
+		"clientmessageid": content.ClientMessageId, // A large integer (~20 digits)
 		//"composetime":     time.Now().Format(time.RFC3339),
 		"messagetype":     "Text",
-		"content":         content,
+		"content":         content.Content,
 	}
 	params, _ := json.Marshal(data)
 	body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(params), nil, headers)
@@ -62,11 +107,6 @@ func (c *Conn) SendMsg(chatThreadId, content, clientMessageId string, output cha
 	//json.Unmarshal([]byte(body), back)
 	//m.SendMessageBack = back
 	fmt.Println("SendMsg rsp body :", body)
-	if err != nil {
-		output <- fmt.Errorf("message sending responded with %d", err)
-	} else {
-		output <- nil
-	}
 	return
 }
 
@@ -77,17 +117,17 @@ func (c *Conn) SendMsg(chatThreadId, content, clientMessageId string, output cha
 `type: "pish/image"
 `filename: "gh_e12cb68793e0_258.jpg"
 */
-func (c *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int) (err error) {
+func (c *Conn) SendFile(chatThreadId string, content *SendMessage) (err error) {
 	meta := map[string]interface{}{
 		"permissions": map[string]interface{}{
 			chatThreadId: []string{"read"},
 		},
-		"filename": filename,
+		"filename": content.FileName,
 	}
 	objType := "imgpsh"
-	if fileType == "image" || fileType == "" {
+	if content.Type == "m.image" || content.Type == "" {
 		meta["type"] = "pish/image"
-	} else if fileType == "audio" {
+	} else if content.Type == "m.audio" {
 		meta["type"] = "sharing/audio"
 		objType = "audio"
 	} else {
@@ -100,86 +140,63 @@ func (c *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int
 	}
 	data, _ := json.Marshal(meta)
 	req := Request{timeout: 30}
-	bodyfile_one, _ := req.HttpPostWitHeaderAndCookiesJson("https://api.asm.skype.com/v1/objects", nil, string(data), nil, headers)
-	bodyfile_one_d := struct {
+	bodyfileOne, _ := req.HttpPostWitHeaderAndCookiesJson("https://api.asm.skype.com/v1/objects", nil, string(data), nil, headers)
+	bodyfileOneD := struct {
 		ID string `json:"id"`
 	}{}
-	json.Unmarshal([]byte(bodyfile_one), &bodyfile_one_d)
-	fmt.Println(bodyfile_one_d.ID)
-	if bodyfile_one_d.ID == "" {
+	json.Unmarshal([]byte(bodyfileOne), &bodyfileOneD)
+	fmt.Println(bodyfileOneD.ID)
+	if bodyfileOneD.ID == "" {
 		return errors.New("get upload file err at first step!")
 	}
-	fullUrl := fmt.Sprintf("https://api.asm.skype.com/v1/objects/%s/content/%s", bodyfile_one_d.ID, objType)
+	var fullUrl string
+	fullUrl = fmt.Sprintf("https://api.asm.skype.com/v1/objects/%s/content/%s", bodyfileOneD.ID, objType)
 	fmt.Println("fullUrl:", fullUrl)
 	//Processing file information , it will be deleted when it comes online
-	filePath := filename
-	f, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	fstat, _ := os.Stat(filePath)
-	filesize := fstat.Size()
-
+	//filePath := filename
+	//fileRawData, err := ioutil.ReadFile(filePath)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return err
+	//}
+	//fstat, _ := os.Stat(filePath)
+	//fileSize := fstat.Size()
+	//fileSize := strconv.Itoa(len(content.SendMediaMessage.RawData))
 	headers["Content-Type"] = "application"
-	headers["Content-Length"] = strconv.Itoa(len(string(f)))
-	_, code, err := req.HttpPutWitHeaderAndCookiesJson(fullUrl, nil, string(f), nil, headers)
-	messagetype := "RichText/UriObject"
-	if code == 201 || code == 200 {
-		imageContent := ""
-		if fileType == "image" || fileType == "" {
-			viewLink_1 := fmt.Sprintf("https://api.asm.skype.com/s/i?%s", bodyfile_one_d.ID)
-			viewLink := fmt.Sprintf(`<a href="%s">%s</a>`, viewLink_1, viewLink_1)
-			values := map[string]string{
-				"OriginalName": filename,
-				"FileSize":     strconv.Itoa(int(filesize)),
-			}
-			imageContent = UriObject(
-				fmt.Sprintf(`%s<meta type="photo" originalName="%s"/>`, viewLink, filename),
-				"Picture.1",
-				fullUrl,
-				fmt.Sprintf("%s/views/imgt1", fullUrl),
-				"",
-				"",
-				duration_ms,
-				values,
-			)
-		} else {
-			viewLink_1 := fmt.Sprintf("https://login.skype.com/login/sso?go=webclient.xmm&docid=%s", bodyfile_one_d.ID)
-			viewLink := fmt.Sprintf(`<a href="%s">%s</a>`, viewLink_1, viewLink_1)
-			ffileTypeStr := "File.1"
-			values := map[string]string{
-				"OriginalName": filename,
-				"FileSize":     strconv.Itoa(int(filesize)),
-			}
-			if fileType == "audio" {
-				ffileTypeStr = "Audio.1/Message.1"
-				messagetype = "RichText/Media_AudioMsg"
-			}
+	headers["Content-Length"] = content.FileSize
 
-			imageContent = UriObject(
-				viewLink,
-				ffileTypeStr,
-				fullUrl,
-				fmt.Sprintf("%s/views/thumbnail", fullUrl),
-				filename,
-				filename,
-				duration_ms,
-				values,
-			)
+	fmt.Println("message SendimageMsg headers: ", headers)
+	fmt.Println()
+	fmt.Println("message fileSize:", content.FileSize)
+	fmt.Println()
+	//fileSize := len(fileRawData)
+	body, code, err := req.HttpPutWitHeaderAndCookiesJson(fullUrl, nil, string(content.SendMediaMessage.RawData), nil, headers)
+	fmt.Printf("message SendimageMsg rsp: %+v", body)
+	messageType := "RichText/UriObject"
+	if code == 201 || code == 200 {
+		fmt.Println("message SendimageMsg1: ")
+		imageContent := MediaContentFormat(content.Type, content.FileName, content.FileSize, fullUrl, content.SendMediaMessage.Duration, bodyfileOneD.ID)
+		if content.Type == "m.audio" {
+			messageType = "RichText/Media_AudioMsg"
 		}
-		clientmessageid := time.Now().Unix() * 1000
+
 		requestBody := map[string]interface{}{
-			"tmessageid":    strconv.Itoa(int(clientmessageid)),
+			"clientmessageid":    content.ClientMessageId,
 			"content":       imageContent,
-			"messagetype":   messagetype,
+			"messagetype":   messageType,
+			//"composetime":   time.Now().Format(time.RFC3339),
 			"contenttype":   "text",
-			"amsreferences": []string{bodyfile_one_d.ID},
+			//"imdisplayname": "Oliver1 Zhao2",
+			//"receiverdisplayname": "test zhao",
+			"amsreferences": []string{bodyfileOneD.ID},
 		}
 		headers1 := map[string]string{
 			"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 			"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 		}
+		fmt.Println()
+		fmt.Printf("requestBody: %+v", requestBody)
+		fmt.Println()
 		requestBody1, _ := json.Marshal(requestBody)
 		surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, chatThreadId)
 		body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(requestBody1), nil, headers1)
@@ -191,4 +208,60 @@ func (c *Conn) SendFile(chatThreadId, filename, fileType string, duration_ms int
 		c.SendFileBack = back
 	}
 	return
+}
+
+func MediaContentFormat(fileType string, filename string, fileSize string, fullUrl string, durationMs int, bodyFileOneId string) string {
+	var imageContent string
+	fmt.Println()
+	fmt.Println("MediaContentFormat: ", fileType)
+	if fileType == "m.image" || fileType == "" {
+		fullUrl = "https://api.asm.skype.com/v1/objects/" + bodyFileOneId
+		viewLink_1 := fmt.Sprintf("https://api.asm.skype.com/s/i?%s", bodyFileOneId)
+		viewLink := fmt.Sprintf(`<a href="%s">%s</a>`, viewLink_1, viewLink_1)
+		values := map[string]string{
+			"OriginalName": filename,
+			"FileSize":     fileSize,
+		}
+		imageContent = UriObject(
+			fmt.Sprintf(`%s<meta type="photo" originalName="%s"></meta>`, viewLink, filename),
+			"Picture.1",
+			bodyFileOneId,
+			fullUrl,
+			fmt.Sprintf("%s/views/imgt1", fullUrl),
+			"",
+			"",
+			durationMs,
+			values,
+		)
+		fmt.Println()
+		fmt.Println(fmt.Sprintf(`%s<meta type="photo" originalName="%s"/>`, viewLink, filename))
+		fmt.Println(fmt.Sprintf("%s/views/imgt1", fullUrl))
+		fmt.Println(values)
+		fmt.Println()
+		fmt.Println(imageContent)
+		fmt.Println()
+	} else {
+		viewLink_1 := fmt.Sprintf("https://login.skype.com/login/sso?go=webclient.xmm&docid=%s", bodyFileOneId)
+		viewLink := fmt.Sprintf(`<a href="%s">%s</a>`, viewLink_1, viewLink_1)
+		ffileTypeStr := "File.1"
+		values := map[string]string{
+			"OriginalName": filename,
+			"FileSize":     fileSize,
+		}
+		if fileType == "m.audio" {
+			ffileTypeStr = "Audio.1/Message.1"
+		}
+		imageContent = UriObject(
+			viewLink,
+			ffileTypeStr,
+			bodyFileOneId,
+			fullUrl,
+			fmt.Sprintf("%s/views/thumbnail", fullUrl),
+			filename,
+			filename,
+			durationMs,
+			values,
+		)
+	}
+	return imageContent
 }

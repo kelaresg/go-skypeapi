@@ -38,9 +38,6 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 	}
 	defaultDomain := u["host"]
 	//获得每次登录的信息  然后通过token 请求 skype 的官方接口
-	if err != nil {
-		return
-	}
 	//默认超时
 	if req.timeout == 0 {
 		req.timeout = 10

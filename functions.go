@@ -184,12 +184,13 @@ func getParentDirectory(dir string) string {
 	return substr(dir, 0, strings.LastIndex(dir, "/"))
 }
 
-func UriObject(content, filetype, url, thumb, title, desc string, duration_ms int,  values map[string]string) string  {
-	titleTag := "<Title/>"
-	descTag := "<Description/>"
+func UriObject(content, filetype, docId, url, thumb, title, desc string, duration_ms int,  values map[string]string) string  {
+	titleTag := "" // "<Title/>"
+	descTag := "" //"<Description/>"
 	thumbAttr := ""
 	valTags := ""
 	Durationms := ""
+	docIdTag := ""
 	if len(title) > 0 {
 		titleTag = fmt.Sprintf(`<Title>Title: %s</Title>`, title)
 	}
@@ -199,14 +200,17 @@ func UriObject(content, filetype, url, thumb, title, desc string, duration_ms in
 	if len(thumb) > 0 {
 		thumbAttr = fmt.Sprintf(`url_thumbnail="%s"`, thumb)
 	}
+	if len(docId) > 0 {
+		docIdTag = fmt.Sprintf(`doc_id="%s"`, docId)
+	}
 	if len(values) > 0 {
 		for k,v := range values {
-			valTags += fmt.Sprintf(`<%s v="%s"/>`, k, v)
+			valTags += fmt.Sprintf(`<%s v="%s"></%s>`, k, v, k)
 		}
 	}
 	if duration_ms > 0 {
 		Durationms = fmt.Sprintf(`duration_ms="%s"`, strconv.Itoa(duration_ms))
 	}
-	objStr := fmt.Sprintf(`<URIObject type="%s" uri="%s" %s %s>%s%s%s%s</URIObject>`, filetype, url, Durationms, thumbAttr, titleTag, descTag, valTags, content)
+	objStr := fmt.Sprintf(`<URIObject type="%s" uri="%s" %s %s %s>%s%s%s%s</URIObject>`, filetype, url, Durationms, thumbAttr, docIdTag, titleTag, descTag, valTags, content)
 	return objStr
 }
