@@ -137,8 +137,8 @@ type UserPresence struct {
 	Id                       string   `json:"id"`
 	Type                     string   `json:"type"`
 	SelfLink                 string   `json:"selfLink"`
-	Availability             Presence `json:"availability"`
-	Status                   string   `json:"status"`
+	Availability             string `json:"availability"`
+	Status                   Presence `json:"status"`
 	Capabilities             string   `json:"capabilities"`
 	LastSeenAt               string   `json:"lastSeenAt"`
 	EndpointPresenceDocLinks []string `json:"endpointPresenceDocLinks"`
@@ -206,6 +206,24 @@ func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMess
 	}
 	data, err = Download(mediaUrl, ce, fileLength)
 	return
+}
+
+type ContactMessageContent struct {
+	XMLName xml.Name `xml:"contacts"` //
+	C       struct {
+		T string `xml:"t,attr"`
+		S string `xml:"s,attr"` // live:xxxxx
+		F string `xml:"f,attr"` // username
+	} `xml:"c"`
+}
+
+func (Re *Resource) ParseContact() (contactMessage *ContactMessageContent, err error) {
+	contactMessage = &ContactMessageContent{}
+	err = xml.Unmarshal([]byte(Re.Content), contactMessage)
+	if err != nil {
+		return nil, err
+	}
+	return contactMessage, nil
 }
 
 func (Re *Resource)GetFromMe (ce *Conn) bool{

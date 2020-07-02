@@ -45,6 +45,13 @@ type ImageMessageHandler interface {
 	HandleImageMessage(message Resource)
 }
 
+//messagetype: RichText/UriObject
+type ContactMessageHandler interface {
+	Handler
+	HandleContactMessage(message Resource)
+}
+
+
 //messagetype:
 type VideoMessageHandler interface {
 	Handler
@@ -154,6 +161,16 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 						x.HandleImageMessage(message.Resource)
 					} else {
 						go x.HandleImageMessage(message.Resource)
+					}
+				}
+			}
+		} else if message.Resource.MessageType == "RichText/Contacts" {
+			for _, h := range handlers {
+				if x, ok := h.(ContactMessageHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleContactMessage(message.Resource)
+					} else {
+						go x.HandleContactMessage(message.Resource)
 					}
 				}
 			}

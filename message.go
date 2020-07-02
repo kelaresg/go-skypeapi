@@ -56,53 +56,13 @@ type SendMediaMessage struct {
 	Duration int
 }
 
-func (c *Conn) SendMsg(chatThreadId string, content *SendMessage, output chan<- error) (err error) {
-	fmt.Println("message SendMsg type: ", content.Type)
-	switch content.Type {
-	case "m.text":
-		err = c.SendText(chatThreadId, content)
-	case "m.emote":
-		err = c.SendText(chatThreadId, content)
-	case "m.notice":
-		err = c.SendText(chatThreadId, content)
-	case "m.image":
-		fmt.Println("message SendMsg type m.image: ", content.Type)
-		err = c.SendFile(chatThreadId, content)
-	case "m.video":
-		fmt.Println("message SendMsg type m.video: ", content.Type)
-		err = c.SendFile(chatThreadId, content)
-	case "m.audio":
-		fmt.Println("message SendMsg type m.audio: ", content.Type)
-		err = c.SendFile(chatThreadId, content)
-	case "m.file":
-		fmt.Println("message SendMsg type m.file: ", content.Type)
-		err = c.SendFile(chatThreadId, content)
-	case "m.location":
-		fmt.Println("message SendMsg type m.location: ", content.Type)
-		//err = c.SendFile(chatThreadId, content)
-	default:
-		err = errors.New("send to skype(unknown message type)")
-	}
-
-	if err != nil {
-		output <- fmt.Errorf("message sending responded with %d", err)
-	} else {
-		output <- nil
-	}
-	return
-}
-
 func (c *Conn) SendText(chatThreadId string, content *SendMessage) (err error) {
-	//API_MSGSHOST chat thread identifier
 	surl := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, chatThreadId)
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
 	}
-	//currentTimeNanoStr := strconv.FormatInt(time.Now().UnixNano(), 10)
-	//currentTimeNanoStr = currentTimeNanoStr[:len(currentTimeNanoStr)-3]
-	//clientMessageId := currentTimeNanoStr + fmt.Sprintf("%04v", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(10000))
 	data := map[string]interface{}{
 		"contenttype":     "text",
 		"clientmessageid": content.ClientMessageId, // A large integer (~20 digits)
@@ -161,16 +121,6 @@ func (c *Conn) SendFile(chatThreadId string, content *SendMessage) (err error) {
 	var fullUrl string
 	fullUrl = fmt.Sprintf("https://api.asm.skype.com/v1/objects/%s/content/%s", bodyfileOneD.ID, objType)
 	fmt.Println("fullUrl:", fullUrl)
-	//Processing file information , it will be deleted when it comes online
-	//filePath := filename
-	//fileRawData, err := ioutil.ReadFile(filePath)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	return err
-	//}
-	//fstat, _ := os.Stat(filePath)
-	//fileSize := fstat.Size()
-	//fileSize := strconv.Itoa(len(content.SendMediaMessage.RawData))
 	headers["Content-Type"] = "application"
 	headers["Content-Length"] = content.FileSize
 
@@ -274,3 +224,4 @@ func MediaContentFormat(fileType string, filename string, fileSize string, fullU
 	}
 	return imageContent
 }
+
