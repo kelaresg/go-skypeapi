@@ -273,7 +273,7 @@ func (c *Conn) GetConversations() (err error) {
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 		"Sec-Fetch-Dest":    "empty",
 		"Sec-Fetch-Mode":    "cors",
@@ -306,7 +306,7 @@ func (c *Conn) GetConversation(id string) (conversation *Conversation, err error
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken, // "skypetoken=" + skypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 		"Sec-Fetch-Dest":    "empty",
 		"Sec-Fetch-Mode":    "cors",
@@ -380,7 +380,7 @@ func (c *Conn) GetConsumptionHorizons(conId string) (content *ConsumptionHorizon
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 		"Sec-Fetch-Dest":    "empty",
 		"Sec-Fetch-Mode":    "cors",

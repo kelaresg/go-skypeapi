@@ -17,7 +17,7 @@ func main7() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	err  = cli.Login(username, pwd)
+	_, err  = cli.Login(username, pwd)
 	//c := skype.Conn{}
 
 	userId := cli.UserProfile.Username
@@ -45,7 +45,7 @@ func main7() {
 		HistoryDisclosed: "true",
 		Topic: Topic,
 	}
-	cli.CreateConversationGroup(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members)
+	cli.CreateConversationGroup(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, Members)
 
 	Members = skype.Members{}
 	for _, memberId := range inputArr {
@@ -54,6 +54,6 @@ func main7() {
 			Role: "Admin",
 		})
 	}
-	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, "")
+	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, Members, "")
 	fmt.Println("-----------------------------end-------------------------------")
 }

@@ -13,25 +13,15 @@ import (
 )
 
 type Conn struct {
-	loggedIn    bool //has logged in or not
-	session     *Session
-	Store       *Store
-	handler    []Handler
-	LoginInfo   *LoginInfo
-	UserProfile *UserProfile
+	loggedIn          bool //has logged in or not
+	session           *Session
+	Store             *Store
+	handler           []Handler
+	LoginInfo         *Session
+	UserProfile       *UserProfile
 	ConversationsList *ConversationsList
 	*MessageClient
 	*ContactClient
-}
-
-type LoginInfo struct {
-	SkypeToken            string
-	SkypeExpires          string
-	RegistrationToken     string
-	RegistrationExpires   string
-	LocationHost          string
-	EndpointId            string
-	RegistrationtokensStr string
 }
 
 /**
@@ -75,37 +65,37 @@ func NewConn() (cli *Conn, err error) {
 /**
 login Skype by web auth
 */
-func (c *Conn) Login(username, password string) (err error) {
+func (c *Conn) Login(username, password string) (session Session, err error) {
 	MSPRequ, MSPOK, PPFT, err := c.getParams()
 
 	if err != nil {
-		return errors.New("params get error")
+		return Session{}, errors.New("params get error")
 	}
 	//1. send username password
 	_, err, tValue := c.sendCred(username, password, MSPRequ, MSPOK, PPFT)
-	if err != nil || tValue == "" {
-		return errors.New("sendCred get error")
+	if err != nil {
+		return Session{}, errors.New("sendCred get error")
 	}
 	if tValue == "" {
-		return errors.New("Please confirm that your username/password is entered correctly ")
+		return Session{}, errors.New("Please confirm that your username/password is entered correctly ")
 	}
 	//2. get token and RegistrationExpires
 	err = c.getToken(tValue)
 	if err != nil {
-		return
+		return Session{}, errors.New("Get token error ")
 	}
 	//获得用户SkypeRegistrationTokenProvider
 	c.LoginInfo.LocationHost = API_MSGSHOST
 	err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
 	if err != nil {
-		return errors.New("SkypeRegistrationTokenProvider get error")
+		return Session{}, errors.New("SkypeRegistrationTokenProvider get error")
 	}
 	//请求获得用户的id （类型  string）
 	err = c.GetUserId(c.LoginInfo.SkypeToken)
 	if err != nil {
-		return errors.New("GetUserId get error")
+		return Session{}, errors.New("GetUserId get error")
 	}
-	return
+	return *c.LoginInfo, nil
 }
 
 /**
@@ -207,7 +197,7 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 	if strings.Index(registrationTokenStr, "endpointId=") == -1 {
 		registrationTokenStr = registrationTokenStr + "; endpointId=" + c.LoginInfo.EndpointId
 	} else {
-		c.LoginInfo.RegistrationtokensStr = registrationTokenStr
+		c.LoginInfo.RegistrationTokenStr = registrationTokenStr
 	}
 	return
 }
@@ -230,7 +220,7 @@ func (c *Conn) Subscribes() {
 	}
 	header := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
 	params, _ := json.Marshal(data)
@@ -273,7 +263,7 @@ func (c *Conn) SubscribeUsers(ids []string) {
 
 	header := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
 	params, _ := json.Marshal(data)
@@ -287,24 +277,22 @@ func (c *Conn) Poll() {
 	req := Request{
 		timeout: 60,
 	}
-	pollPath := c.PollPath()
-	header := map[string]string{
-		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
-		"BehaviorOverride":  "redirectAs404",
-	}
-	data := map[string]interface{}{
-		"endpointFeatures": "Agent",
-	}
+
 	fmt.Println()
 	fmt.Println("The message listener is ready")
 	fmt.Println()
-	params, _ := json.Marshal(data)
-Loop:
+
 	for i := 0; i <= 1000; i++ {
-		if i > 1000 {
-			goto Loop
+		pollPath := c.PollPath()
+		header := map[string]string{
+			"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+			"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
+			"BehaviorOverride":  "redirectAs404",
 		}
+		data := map[string]interface{}{
+			"endpointFeatures": "Agent",
+		}
+		params, _ := json.Marshal(data)
 		body, err, _ := req.request("post", pollPath, strings.NewReader(string(params)), nil, header)
 		if err != nil {
 			fmt.Println("poller err: ", err)
@@ -316,14 +304,8 @@ Loop:
 			}
 			err = json.Unmarshal([]byte(body), &bodyContent)
 			if err != nil {
-				// fmt.Println("poller body: ", body)
 				fmt.Println("json.Unmarshal poller body err: ", err)
 			}
-			fmt.Println()
-			fmt.Println()
-			fmt.Printf("poller body bodyContent%+v", bodyContent)
-			fmt.Println()
-			fmt.Println()
 			if len(bodyContent.EventMessages) > 0 {
 				for _, message := range bodyContent.EventMessages {
 					if message.Type == "EventMessage" {
@@ -364,7 +346,7 @@ func (c *Conn) getToken(t string) (err error) {
 	}
 	query, _ := json.Marshal(data)
 	_, err, _, token, expires := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(paramsMap)), string(query))
-	c.LoginInfo = &LoginInfo{
+	c.LoginInfo = &Session{
 		SkypeToken:   token,
 		SkypeExpires: expires,
 	}

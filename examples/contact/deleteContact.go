@@ -20,7 +20,7 @@ func main9() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	err  = cli.Login(username, pwd)
+	_, err  = cli.Login(username, pwd)
 	//c := skype.ContactClient{}
 
 	fmt.Printf("\ne.g:live:******")
@@ -34,6 +34,6 @@ func main9() {
 	inputArr := strings.Fields(input)
 	otherid := "8:"+inputArr[0]
 	cli.DeleteContact(cli.LoginInfo.SkypeToken, cli.UserProfile.Username, otherid)
-	//c.AddContact(cli.LoginInfo.SkypeToken, cli.UserProfile.Username, otherid)
+	//c.AddContact(cli.session.SkypeToken, cli.UserProfile.Username, otherid)
 	fmt.Println("-----------------------------end-------------------------------")
 }

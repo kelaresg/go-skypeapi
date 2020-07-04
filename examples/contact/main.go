@@ -6,7 +6,7 @@ import (
 	"github.com/kelaresg/go-skypeapi"
 )
 
-func main() {
+func main4() {
 	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
@@ -15,7 +15,7 @@ func main() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	//_, _, _ = cli.LoginApiAuth("zhaosl@shinetechchina.com", "zsl630235")
-	err  = cli.Login(username, pwd)
+	_, err  = cli.Login(username, pwd)
 	userId := cli.UserProfile.Username
 
 	//contant := skype.ContactClient{}

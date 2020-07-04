@@ -61,7 +61,7 @@ func (c *Conn) SendText(chatThreadId string, content *SendMessage) (err error) {
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 	}
 	data := map[string]interface{}{
 		"contenttype":     "text",
@@ -151,7 +151,7 @@ func (c *Conn) SendFile(chatThreadId string, content *SendMessage) (err error) {
 		}
 		headers1 := map[string]string{
 			"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
-			"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+			"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		}
 		fmt.Println()
 		fmt.Printf("requestBody: %+v", requestBody)

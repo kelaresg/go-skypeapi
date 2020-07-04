@@ -20,7 +20,7 @@ func main6() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	err  = cli.Login(username, pwd)
+	_, err  = cli.Login(username, pwd)
 	c := skype.Conn{}
 
 	testUserId := "8:"+cli.UserProfile.Username
@@ -35,7 +35,7 @@ func main6() {
 	//"19:0be6022fd0d843b4916cf5c0492c3412@thread.skype"
 	inputArr := strings.Split(input, " ")
 	conversationId := inputArr[0]
-	c.GetConJoinUrl(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, conversationId, testUserId)
+	c.GetConJoinUrl(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, conversationId, testUserId)
 
 	fmt.Println("-----------------------------end-------------------------------")
 }

@@ -14,12 +14,12 @@ func main() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	err  = cli.Login(username, pwd)
+	_, err  = cli.Login(username, pwd)
 	fmt.Println(cli.UserProfile.Username)
 	//c := skype.Conn{}
 
 	// eg1
-	//cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
+	//cli.GetConversations(cli.session.LocationHost, cli.session.SkypeToken, cli.session.RegistrationTokenStr)
 	//fmt.Println("conversations start")
 	//fmt.Println("conversations count :",c.ConversationsList.Metadata.TotalCount)
 	//fmt.Println("conversations content :",c.ConversationsList.Conversations)
@@ -33,7 +33,7 @@ func main() {
 	// cli.GetConversation("19:0be6022fd0d843b4916cf5c0492c3412@thread.skype")
 
 	//eg3
-	// cli.GetConversationThreads(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype")
+	// cli.GetConversationThreads(cli.session.LocationHost, cli.session.SkypeToken, cli.session.RegistrationTokenStr, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype")
 
 	//eg4
 	//member1 := skype.Member{
@@ -48,7 +48,7 @@ func main() {
 	//Members := skype.Members{}
 	//Members.Members = append(Members.Members, member1)
 	//Members.Members = append(Members.Members, member2)
-	//cli.CreateConversationGroup(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members)
+	//cli.CreateConversationGroup(cli.session.LocationHost, cli.session.SkypeToken, cli.session.RegistrationTokenStr, Members)
 
 	//eg5
 	//member1 := skype.Member{
@@ -58,11 +58,11 @@ func main() {
 	//}
 	//Members := skype.Members{}
 	//Members.Members = append(Members.Members, member1)
-	//cli.AddMemberToConversation(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype")
+	//cli.AddMemberToConversation(cli.session.LocationHost, cli.session.SkypeToken, cli.session.RegistrationTokenStr, Members, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype")
 
 	//eg6
 	//testUserId := "8:live:.cid.d3feb90dceeb51cc"
-	//cli.RemoveMemberFromConversation(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype", testUserId)
+	//cli.RemoveMemberFromConversation(cli.session.LocationHost, cli.session.SkypeToken, cli.session.RegistrationTokenStr, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype", testUserId)
 
 	fmt.Println("-----------------------------end-------------------------------")
 }

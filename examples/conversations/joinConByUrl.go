@@ -24,7 +24,7 @@ func main5() {
 	skype.GetConfigYamlForBuildExample()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	err  = cli.Login(username, pwd)
+	_, err  = cli.Login(username, pwd)
 	//c := skype.Conn{}
 
 	fmt.Printf("\niuput url and enter to join:")
@@ -36,20 +36,20 @@ func main5() {
 	}
 	inputArr := strings.Split(input, " ")
 	joinUrl := inputArr[0]
-	err, rsp := cli.JoinConByCode(cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, joinUrl)
+	err, rsp := cli.JoinConByCode(cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, joinUrl)
 	member1 := skype.Member{
 		Id: "8:"+cli.UserProfile.Username,
 		Role: "Admin",
 	}
 	Members := skype.Members{}
 	Members.Members = append(Members.Members, member1)
-	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, Members, rsp.Resource)
+	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, Members, rsp.Resource)
 	member2 := skype.Member{
 		Id: "8:"+cli.UserProfile.Username,
 		Role: "User",
 	}
 	mewMembers := skype.Members{}
 	mewMembers.Members = append(mewMembers.Members, member2)
-	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, mewMembers, rsp.Resource)
+	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, mewMembers, rsp.Resource)
 	fmt.Println("-----------------------------end-------------------------------")
 }

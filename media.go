@@ -37,10 +37,10 @@ func (c *Conn) downloadMedia(url string) (file []byte, err error) {
 		//Timeout: 20 * time.Second,
 	}
 	headers := map[string]string{
-		"skypetoken_asm":    c.LoginInfo.SkypeToken, // "skype_token " + Conn.LoginInfo.SkypeToken,
+		"skypetoken_asm":    c.LoginInfo.SkypeToken, // "skype_token " + Conn.Session.SkypeToken,
 	}
 	cookies := map[string]string{
-		"skypetoken_asm":    c.LoginInfo.SkypeToken, // "skype_token " + Conn.LoginInfo.SkypeToken,
+		"skypetoken_asm":    c.LoginInfo.SkypeToken, // "skype_token " + Conn.Session.SkypeToken,
 	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

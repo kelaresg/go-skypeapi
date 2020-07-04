@@ -173,18 +173,11 @@ func (c *Conn) ContactList(id string) (err error) {
 	if err != nil {
 		return err
 	}
-	fmt.Println()
-	fmt.Println("contacts list", body)
+	//fmt.Println()
+	//fmt.Println("contacts list", body)
 	list := ContactsList{}
 	json.Unmarshal([]byte(body), &list)
 	c.updateContacts(list.Contacts)
-	//fmt.Println()
-	//fmt.Printf("contacts list format%+v", c.Store.Contacts)
-
-	//c.ContactClient.Users = &list
-	//fmt.Println()
-	//fmt.Println("ContactList: ", &list)
-	//fmt.Println("ContactList1", c.ContactClient.Users)
 	return
 }
 
@@ -470,7 +463,7 @@ func (c *Conn)GetContactsCurrentStatus(ids []string) (content *ContactsStatusRes
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"BehaviorOverride":  "redirectAs404",
-		"RegistrationToken": c.LoginInfo.RegistrationtokensStr,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 	}
 	params := url.Values{}
 	for _, id := range ids {

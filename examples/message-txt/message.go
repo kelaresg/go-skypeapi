@@ -18,10 +18,10 @@ func main() {
 		fmt.Println(err)
 	}
 
-	err = cli.Login(username, pwd)
+	_, err = cli.Login(username, pwd)
 
 	//c := skype.ConversationsClient{}
-	cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr)
+	cli.GetConversations()
 	fmt.Println("conversations:", cli.ConversationsList)
 	for _, v := range cli.ConversationsList.Conversations {
 		fmt.Println("conversation id :", v.Id)
@@ -37,16 +37,16 @@ func main() {
 	for {
 		fmt.Printf("\neg: <ConversationId> <message content>")
 		fmt.Printf("\nEnter to send:")
-		inputReader := bufio.NewReader(os.Stdin)
-		input, err := inputReader.ReadString('\n')
-		if err != nil {
-			fmt.Printf("err: %s\n", err)
-			return
-		}
-		inputArr := strings.Split(input, " ")
-		ChatThreadId := inputArr[0]
-		contentArr := inputArr[1:]
-		cli.SendMsg(ChatThreadId, strings.Join(contentArr, " "), nil)
+		//inputReader := bufio.NewReader(os.Stdin)
+		//input, err := inputReader.ReadString('\n')
+		//if err != nil {
+		//	fmt.Printf("err: %s\n", err)
+		//	return
+		//}
+		// inputArr := strings.Split(input, " ")
+		//ChatThreadId := inputArr[0]
+		//contentArr := inputArr[1:]
+		// cli.SendMsg(ChatThreadId, strings.Join(contentArr, " "), nil)
 	}
 	/**
 	eg 2 send file  ,
@@ -57,7 +57,7 @@ func main() {
 	//	fmt.Printf("\n ChatThreadId filename filetype \n (filetype:image audio other)（example: 8:live:116xxxx691 aaa.png image; 8:live:116xxxx691 aaa.txt other;  8:live:116xxxx691 aaa.mp3 audio）: ")
 	//	fmt.Scanln(&ChatThreadId, &filename, &filetype)
 	//	fmt.Println(ChatThreadId, filename, filetype)
-	//	m.SendFile(cli.LoginInfo.LocationHost, ChatThreadId, filename, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationtokensStr, filetype)
+	//	m.SendFile(cli.session.LocationHost, ChatThreadId, filename, cli.session.SkypeToken, cli.session.RegistrationTokenStr, filetype)
 	//	fmt.Println("send success")
 	//	fmt.Println("go in next send logic")
 	//	fmt.Println("-------------------------------")
