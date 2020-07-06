@@ -194,6 +194,26 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 					}
 				}
 			}
+		} else if message.Resource.MessageType == "RichText/Media_Video" {
+			for _, h := range handlers {
+				if x, ok := h.(ImageMessageHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleImageMessage(message.Resource)
+					} else {
+						go x.HandleImageMessage(message.Resource)
+					}
+				}
+			}
+		} else if message.Resource.MessageType == "RichText/Media_AudioMsg" {
+			for _, h := range handlers {
+				if x, ok := h.(ImageMessageHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleImageMessage(message.Resource)
+					} else {
+						go x.HandleImageMessage(message.Resource)
+					}
+				}
+			}
 		} else if message.Resource.MessageType == "ThreadActivity/TopicUpdate" {
 			for _, h := range handlers {
 				if x, ok := h.(ChatUpdateHandler); ok {

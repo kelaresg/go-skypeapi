@@ -208,7 +208,8 @@ func MediaContentFormat(fileType string, filename string, fileSize string, fullU
 			"FileSize":     fileSize,
 		}
 		if fileType == "m.audio" {
-			ffileTypeStr = "Audio.1/Message.1"
+			//ffileTypeStr = "Audio.1/Message.1" // if need send audio message like skype
+			ffileTypeStr = "Audio.1"
 		}
 		imageContent = UriObject(
 			viewLink,

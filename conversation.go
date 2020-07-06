@@ -163,6 +163,7 @@ type EndpointPresence struct {
 type MediaMessageContent struct {
 	XMLName      xml.Name `xml:"URIObject"` //
 	Uri          string   `xml:"uri,attr"`
+	DurationMs   string   `xml:"duration_ms,attr"`
 	UrlThumbnail string   `xml:"url_thumbnail,attr"`
 	Type         string   `xml:"type,attr"`
 	DocId        string   `xml:"doc_id,attr"`
@@ -196,6 +197,10 @@ func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMess
 		mediaUrl = mediaMessage.Uri + "/views/imgpsh_mobile_save_anim"
 	case "RichText/Media_GenericFile":
 		mediaUrl = mediaMessage.Uri + "/views/original"
+	case "RichText/Media_Video":
+		mediaUrl = mediaMessage.Uri + "/views/video"
+	case "RichText/Media_AudioMsg":
+		mediaUrl = mediaMessage.Uri + "/views/audio"
 	}
 
 	fmt.Println("content.A.Href", mediaMessage.Uri)
@@ -400,14 +405,14 @@ func (c *Conn) GetConsumptionHorizons(conId string) (content *ConsumptionHorizon
 /**
 .Create a new group conversation.
 */
-func (c *Conn) CreateConversationGroup(apiHost string, skypeToken string, regToken string, members Members) (err error) {
+func (c *Conn) CreateConversationGroup(members Members) (err error) {
 	//API_MSGSHOST
-	path := fmt.Sprintf("%s/v1/threads", apiHost)
+	path := fmt.Sprintf("%s/v1/threads", c.LoginInfo.LocationHost)
 	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + skypeToken,
-		"RegistrationToken": regToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 		"Location": "/",
 	}
@@ -425,15 +430,15 @@ func (c *Conn) CreateConversationGroup(apiHost string, skypeToken string, regTok
 /**
 add a member to a group conversation.
 */
-func (c *Conn) AddMember(apiHost string, skypeToken string, regToken string, members Members, conversationId string) (err error) {
+func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 	//API_MSGSHOST
 	//https://client-s.gateway.messenger.live.com/v1/threads/4323A0b5463022fd0d43b4916cf5c6492c3412%40thread.skype/members
-	path := fmt.Sprintf("%s/v1/threads/%s/members", apiHost, conversationId)
+	path := fmt.Sprintf("%s/v1/threads/%s/members", c.LoginInfo.LocationHost, conversationId)
 	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + skypeToken,
-		"RegistrationToken": regToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
 	data := members

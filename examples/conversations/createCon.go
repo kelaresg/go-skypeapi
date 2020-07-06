@@ -45,7 +45,7 @@ func main7() {
 		HistoryDisclosed: "true",
 		Topic: Topic,
 	}
-	cli.CreateConversationGroup(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, Members)
+	cli.CreateConversationGroup(Members)
 
 	Members = skype.Members{}
 	for _, memberId := range inputArr {
@@ -54,6 +54,6 @@ func main7() {
 			Role: "Admin",
 		})
 	}
-	cli.AddMember(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr, Members, "")
+	cli.AddMember(Members, "")
 	fmt.Println("-----------------------------end-------------------------------")
 }
