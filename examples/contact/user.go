@@ -15,10 +15,12 @@ func main() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	_, err  = cli.Login(username, pwd)
-	skypetoken := cli.LoginInfo.SkypeToken
-	user := skype.User{}
 	// eg1
-	user.GetProfile(skypetoken, "live:love.kimi_2")
+	//user.GetProfile(skypetoken, "live:love.kimi_2")
+	//user.GetContactsProfile(skypetoken)
+	// username
+	// like live:xxxxx will be more precise
+	cli.NameSearch( "zoe")
 
 
 	// eg2
