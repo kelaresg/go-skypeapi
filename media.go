@@ -33,8 +33,12 @@ func Download(url string, ce *Conn, fileLength int) ([]byte, error) {
 }
 
 func (c *Conn) downloadMedia(url string) (file []byte, err error) {
+	fmt.Println("downloadMedia:", url)
 	client := &http.Client{
 		//Timeout: 20 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	headers := map[string]string{
 		"skypetoken_asm":    c.LoginInfo.SkypeToken, // "skype_token " + Conn.Session.SkypeToken,
@@ -73,6 +77,10 @@ func (c *Conn) downloadMedia(url string) (file []byte, err error) {
 		return nil, err
 	}
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 302 {
+			location := resp.Header.Get("Location")
+			return c.downloadMedia(location)
+		}
 		if resp.StatusCode == 404 {
 			return nil, ErrMediaDownloadFailedWith404
 		}

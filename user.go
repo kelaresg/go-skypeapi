@@ -106,20 +106,14 @@ func (c *Conn)NameSearch(keyWord string) (*NameSearchRsp, error) {
 	json.Unmarshal([]byte(body), nameSearchRsp)
 	fmt.Println(nameSearchRsp)
 	for _, node := range nameSearchRsp.Results {
-		//if node.NodeProfileData != nil {
-		fmt.Println("NameSearch Results: ", node)
-			personId := "8:" + node.NodeProfileData.SkypeId + "@s.skype.net"
-			if _, ok := c.Store.Contacts[personId]; !ok {
-				fmt.Println("NameSearch Result for: ", personId)
-				contact := Contact{}
-				contact.DisplayName = node.NodeProfileData.Name
-				contact.Profile.AvatarUrl = node.NodeProfileData.AvatarUrl
-				c.Store.Contacts[personId] = contact
-				fmt.Println("NameSearch Result for2: ", c.Store.Contacts[personId])
-			}
-
-		//}
-
+		personId := "8:" + node.NodeProfileData.SkypeId + "@s.skype.net"
+		if _, ok := c.Store.Contacts[personId]; !ok {
+			contact := Contact{}
+			contact.DisplayName = node.NodeProfileData.Name
+			contact.Profile.AvatarUrl = fmt.Sprintf("https://avatar.skype.com/v1/avatars/%s/public?returnDefaultImage=false", node.NodeProfileData.SkypeId)
+			c.Store.Contacts[personId] = contact
+			fmt.Println("NameSearch Result for2: ", c.Store.Contacts[personId])
+		}
 	}
 	return nameSearchRsp, nil
 }
