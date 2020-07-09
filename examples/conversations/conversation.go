@@ -64,5 +64,9 @@ func main() {
 	//testUserId := "8:live:.cid.d3feb90dceeb51cc"
 	//cli.RemoveMemberFromConversation(cli.session.LocationHost, cli.session.SkypeToken, cli.session.RegistrationTokenStr, "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype", testUserId)
 
+	//EG7
+	//cli.SetConversationThreads("19:3131232131@thread.skype", map[string]string{
+	//	"topic": "3132131",
+	//})
 	fmt.Println("-----------------------------end-------------------------------")
 }

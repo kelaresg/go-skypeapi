@@ -15,10 +15,10 @@ func main() {
 		fmt.Println(err)
 	}
 
-	err = cli.Login(username, pwd)
+	_,_ = cli.Login(username, pwd)
 
 	c := skype.ConversationsClient{}
-	cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr)
+	//cli.GetConversations(cli.LoginInfo.LocationHost, cli.LoginInfo.SkypeToken, cli.LoginInfo.RegistrationTokenStr)
 	fmt.Println("conversations:", c.ConversationsList)
 	for _, v := range c.ConversationsList.Conversations {
 		fmt.Println("conversation id :", v.Id)
@@ -57,7 +57,7 @@ func main() {
 		fmt.Scanln(&ChatThreadId, &filename, &filetype, &duration_ms)
 		fmt.Println(ChatThreadId, filename, filetype)
 		fmt.Println("mp3时长：",   duration_ms)
-		cli.SendFile(ChatThreadId, filename, filetype, duration_ms)
+		//cli.SendFile(ChatThreadId, filename, filetype, duration_ms)
 		fmt.Println("send success")
 		fmt.Println("go in next send logic")
 		fmt.Println("-------------------------------")
