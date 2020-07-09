@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	//"github.com/pkg/errors"
 	"net/url"
 	"strconv"
 	"strings"
@@ -454,19 +455,20 @@ func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 /**
  * Remove Member From Conversation
  */
-func (c *Conn)RemoveMember(apiHost string, skypeToken string, regToken string, conversationId string, userId string)  {
+func (c *Conn)RemoveMember(conversationId string, userId string) (err error) {
 	//DELETE Request URL: https://client-s.gateway.messenger.live.com/v1/threads/1434A0b436022fd0d84342916c3435c0432c3412%40thread.skype/members/8:live:.cid.db9****2b51cc
-	path := fmt.Sprintf("%s/v1/threads/%s/members/%s", apiHost, conversationId, userId)
+	path := fmt.Sprintf("%s/v1/threads/%s/members/%s", c.LoginInfo.LocationHost, conversationId, userId)
 	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + skypeToken,
-		"RegistrationToken": regToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
 	body, err, _ := req.request("delete", path, nil, nil, headers)
 	if err != nil {
 		fmt.Println("RemoveMember err: ", err)
+		return err
 	}
 	fmt.Println("RemoveMember resp: ", body)
 	return

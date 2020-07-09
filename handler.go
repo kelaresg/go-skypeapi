@@ -248,6 +248,16 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 					}
 				}
 			}
+		} else if message.Resource.MessageType == "ThreadActivity/DeleteMember" {
+			for _, h := range handlers {
+				if x, ok := h.(ChatUpdateHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleChatUpdate(message.Resource)
+					} else {
+						go x.HandleChatUpdate(message.Resource)
+					}
+				}
+			}
 		} else {
 			fmt.Println()
 			fmt.Printf("unknown message type0: %+v", message)
