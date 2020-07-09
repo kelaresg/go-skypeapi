@@ -508,15 +508,15 @@ func (c *Conn)GetConJoinUrl(apiHost string, skypeToken string, regToken string, 
 /**
  * Retrieve the join URL for a group conversation, if it is currently public.
  */
-func (c *Conn)JoinConByCode(skypeToken string, regToken string, joinUrl string) (err error, conInfo JoinToConInfo) {
+func (c *Conn)JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) {
 	joinUrlArr := strings.Split(joinUrl, ".com/")
 	//join url e.g https://join.skype.com/IYu****iqUIu
 	path := fmt.Sprintf("%s/api/v2/conversation/", API_JOIN)
 	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"Authentication":    "skypetoken=" + skypeToken,
-		"RegistrationToken": regToken,
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
 	data := map[string]string{
@@ -524,7 +524,7 @@ func (c *Conn)JoinConByCode(skypeToken string, regToken string, joinUrl string) 
 		"type":   "wl",
 	}
 	params, _ := json.Marshal(data)
-	body, err, _ := req.request("post", path, strings.NewReader(string(params)), nil, headers)
+	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
 	if err != nil {
 		fmt.Println("join by code err: ", err)
 	}
