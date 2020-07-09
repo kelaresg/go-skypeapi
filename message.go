@@ -67,7 +67,7 @@ func (c *Conn) SendText(chatThreadId string, content *SendMessage) (err error) {
 		"contenttype":     "text",
 		"clientmessageid": content.ClientMessageId, // A large integer (~20 digits)
 		//"composetime":     time.Now().Format(time.RFC3339),
-		"messagetype":     "Text",
+		"messagetype":     "RichText",
 		"content":         content.Content,
 	}
 	params, _ := json.Marshal(data)
