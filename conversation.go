@@ -185,6 +185,13 @@ type MediaMessageContent struct {
 	} `xml:"meta"`
 }
 
+type XmlContent struct {
+	Deletemember  xml.Name `xml:"deletemember"`
+	Eventtime string `xml:"eventtime"`
+	Initiator string `xml:"initiator"`
+	Target string `xml:"target"`
+}
+
 func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMessage *MediaMessageContent, err error) {
 	mediaMessage = &MediaMessageContent{}
 	err = xml.Unmarshal([]byte(Re.Content), mediaMessage)
@@ -458,19 +465,17 @@ func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 func (c *Conn)RemoveMember(conversationId string, userId string) (err error) {
 	//DELETE Request URL: https://client-s.gateway.messenger.live.com/v1/threads/1434A0b436022fd0d84342916c3435c0432c3412%40thread.skype/members/8:live:.cid.db9****2b51cc
 	path := fmt.Sprintf("%s/v1/threads/%s/members/%s", c.LoginInfo.LocationHost, conversationId, userId)
-	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
 	}
-	body, err, _ := req.request("delete", path, nil, nil, headers)
+	_, err, _ = req.request("delete", path, nil, nil, headers)
 	if err != nil {
 		fmt.Println("RemoveMember err: ", err)
 		return err
 	}
-	fmt.Println("RemoveMember resp: ", body)
 	return
 }
 
