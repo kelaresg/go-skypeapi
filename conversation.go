@@ -599,7 +599,7 @@ func (c *Conn) JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) 
 	return
 }
 
-func (c *Conn) GetMessages(conversationId string, nextURL string) (res MessageBackData, err error) {
+func (c *Conn) GetMessages(conversationId string, nextURL string, pagesize string) (res MessageBackData, err error) {
 	path := ""
 	pathurl := ""
 	if len(nextURL) > 0 {
@@ -608,7 +608,7 @@ func (c *Conn) GetMessages(conversationId string, nextURL string) (res MessageBa
 		path = fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, conversationId)
 		data := url.Values{}
 		data.Set("startTime", "0")
-		data.Set("pageSize", "3")
+		data.Set("pageSize", pagesize)
 		data.Set("view", "supportsExtendedHistory|msnp24Equivalent|supportsMessageProperties")
 		pathurl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(data))
 	}
