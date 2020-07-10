@@ -372,6 +372,40 @@ func (c *Conn) GetConversationThreads(apiHost string, skypeToken string, regToke
 	return
 }
 
+//Update properties of a group conversation. Only one property can be set at a time, which should be the value of the name field, and key for the field holding the new value.
+//Parameters
+//id – chat thread identifier
+//Request JSON Object
+//name – name of parameter to be updated (from the rest of this list)
+//topic – new conversation topic
+//joiningenabled – whether users can join by URL
+//historydisclosed – whether newly-joining users can see past message history
+func (c *Conn) SetConversationThreads(id string, data map[string]string) (body string, err error) {
+	//API_MSGSHOST
+	path := fmt.Sprintf("%s/v1/threads/%s/properties", c.LoginInfo.LocationHost, id)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
+		"BehaviorOverride":  "redirectAs404",
+	}
+	for k, v := range headers {
+		fmt.Println(k, ":", v)
+	}
+
+	queryParams := url.Values{}
+
+	for key, _ := range data {
+		queryParams.Set("name", key)
+	}
+
+	params, _ := json.Marshal(data)
+	body, _, err = req.HttpPutWitHeaderAndCookiesJson(path, queryParams, string(params), nil, headers)
+	fmt.Println("conversation detail: ", body)
+	return
+}
+
 
 type ConsumptionHorizonsRsp struct {
 	Id                  string               `json:"id"`
