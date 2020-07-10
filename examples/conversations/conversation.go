@@ -6,7 +6,7 @@ import (
 	"github.com/kelaresg/go-skypeapi"
 )
 
-func main() {
+func main12() {
 	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
