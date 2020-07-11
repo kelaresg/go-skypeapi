@@ -106,7 +106,10 @@ type ChatPictureContent struct {
 	Initiator string   `xml:"initiator"`
 	Value     string   `xml:"value"`
 }
-
+type ShareLink struct {
+	Id  string `json:"id"`
+	Url string `json:"url"`
+}
 type Resource struct {
 	ConversationLink      string      `json:"conversationLink"`
 	Type                  string      `json:"type"`
@@ -575,7 +578,7 @@ func (c *Conn) RemoveMember(conversationId string, userId string) (err error) {
 /**
  * Retrieve the join URL for a group conversation, if it is currently public.
  */
-func (c *Conn)GetConJoinUrl(conversationId string)  {
+func (c *Conn)GetConJoinUrl(conversationId string) (res ShareLink, err error) {
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"X-Skypetoken":     c.LoginInfo.SkypeToken,
@@ -588,6 +591,7 @@ func (c *Conn)GetConJoinUrl(conversationId string)  {
 	if err != nil {
 		fmt.Println("get join url err: ", err)
 	}
+	err = json.Unmarshal([]byte(body), &res)
 	fmt.Println("get join url resp: ", body)
 	return
 }
