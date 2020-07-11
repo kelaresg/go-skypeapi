@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/gogf/gf/encoding/gurl"
+
 	//"github.com/pkg/errors"
 	"net/url"
 	"strconv"
@@ -16,13 +18,13 @@ type Member struct {
 }
 
 type Properties struct {
-	HistoryDisclosed  string `json:"historydisclosed"` // true|false
-	Topic  string `json:"topic"`
+	HistoryDisclosed string `json:"historydisclosed"` // true|false
+	Topic            string `json:"topic"`
 }
 
 type Members struct {
-	Members []Member `json:"members"`
-	Properties  Properties `json:"properties"`
+	Members    []Member   `json:"members"`
+	Properties Properties `json:"properties"`
 }
 
 type Join struct {
@@ -33,10 +35,10 @@ type Join struct {
 }
 
 type JoinToConInfo struct {
-	Action     string
-	ChatBlob       string
-	FlowId  string
-	Id string
+	Action   string
+	ChatBlob string
+	FlowId   string
+	Id       string
 	Resource string
 }
 
@@ -45,7 +47,7 @@ type Conversation struct {
 	ResourceLink              string                 `json:"resourceLink"`
 	ResourceType              string                 `json:"resourceType"`
 	ThreadProperties          ThreadProperties       `json:"threadProperties"`
-	Id                        interface{}                 `json:"id"`      //string | int?
+	Id                        interface{}            `json:"id"`      //string | int?
 	Type                      string                 `json:"type"`    // "Conversation" | string;
 	Version                   int64                  `json:"version"` // a timestamp ? example: 1464030261015
 	Properties                ConversationProperties `json:"properties"`
@@ -53,7 +55,7 @@ type Conversation struct {
 	Messages                  string                 `json:"message"`
 	LastUpdatedMessageId      int64                  `json:"lastUpdatedMessageId"`
 	LastUpdatedMessageVersion int64                  `json:"lastUpdatedMessageVersion"`
-	Resource                  Resource           `json:"resource"`
+	Resource                  Resource               `json:"resource"`
 	Time                      string                 `json:"time"`
 }
 
@@ -92,17 +94,17 @@ type LastMessage struct {
 }
 
 type ChatTopicContent struct {
-	XMLName  xml.Name `xml:"topicupdate"` //
-	EventTime string `xml:"eventtime"` //
-	Initiator string `xml:"initiator"`
-	Value string `xml:"value"`
+	XMLName   xml.Name `xml:"topicupdate"` //
+	EventTime string   `xml:"eventtime"`   //
+	Initiator string   `xml:"initiator"`
+	Value     string   `xml:"value"`
 }
 
 type ChatPictureContent struct {
-	XMLName  xml.Name `xml:"pictureupdate"` //
-	EventTime string `xml:"eventtime"` //
-	Initiator string `xml:"initiator"`
-	Value string `xml:"value"`
+	XMLName   xml.Name `xml:"pictureupdate"` //
+	EventTime string   `xml:"eventtime"`     //
+	Initiator string   `xml:"initiator"`
+	Value     string   `xml:"value"`
 }
 
 type Resource struct {
@@ -138,7 +140,7 @@ type UserPresence struct {
 	Id                       string   `json:"id"`
 	Type                     string   `json:"type"`
 	SelfLink                 string   `json:"selfLink"`
-	Availability             string `json:"availability"`
+	Availability             string   `json:"availability"`
 	Status                   Presence `json:"status"`
 	Capabilities             string   `json:"capabilities"`
 	LastSeenAt               string   `json:"lastSeenAt"`
@@ -186,10 +188,37 @@ type MediaMessageContent struct {
 }
 
 type XmlContent struct {
-	Deletemember  xml.Name `xml:"deletemember"`
-	Eventtime string `xml:"eventtime"`
-	Initiator string `xml:"initiator"`
-	Target string `xml:"target"`
+	Deletemember xml.Name `xml:"deletemember"`
+	Eventtime    string   `xml:"eventtime"`
+	Initiator    string   `xml:"initiator"`
+	Target       string   `xml:"target"`
+}
+
+//message struct
+type SignMessage struct {
+	Ackrequired         string `json:"ackrequired"`         // "https://client-s.gateway.messenger.live.com/v1/users/ME/conversations/ALL/messages/1451606400000/ack",
+	Clientmessageid     string `json:"clientmessageid"`     // "1451606399999",
+	Composetime         string `json:"composetime"`         // "2016-01-01T00:00:00.000Z",
+	Content             string `json:"content"`             // "A message for the team.",
+	Contenttype         string `json:"contenttype"`         // "text",
+	ConversationLink    string `json:"conversationLink"`    // "https://client-s.gateway.messenger.live.com/v1/users/ME/conversations/19:a0b1c2...d3e4f5@thread.skype",
+	From                string `json:"from"`                // "https://client-s.gateway.messenger.live.com/v1/users/ME/contacts/8:anna.7",
+	Id                  string `json:"id"`                  // "1451606400000",
+	Imdisplayname       string `json:"imdisplayname"`       // "Anna Cooper",
+	Isactive            bool   `json:"isactive"`            // True,
+	Messagetype         string `json:"messagetype"`         // "RichText",
+	Originalarrivaltime string `json:"originalarrivaltime"` // "22016-01-01T00:00:00.000Z",
+	Threadtopic         string `json:"threadtopic"`         // "Team chat",
+	Type                string `json:"type"`                // "Message",
+	Version             string `json:"version"`             // "1451606400000"
+	Properties          struct {
+		Urlpreviews string `json:"urlpreviews"`
+	} `json:"properties"`
+	Conversationid string `json:"conversationid"`
+}
+type MessageBackData struct {
+	Messages []SignMessage `json:"messages"`
+	Metadata Metadata `json:"_metadata"`
 }
 
 func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMessage *MediaMessageContent, err error) {
@@ -239,7 +268,7 @@ func (Re *Resource) ParseContact() (contactMessage *ContactMessageContent, err e
 	return contactMessage, nil
 }
 
-func (Re *Resource)GetFromMe (ce *Conn) bool{
+func (Re *Resource) GetFromMe(ce *Conn) bool {
 	if Re.ConversationLink != "" {
 		ConversationLinkArr := strings.Split(Re.ConversationLink, "/conversations/")
 		Re.Jid = ConversationLinkArr[1]
@@ -267,10 +296,12 @@ type ConversationsList struct {
 }
 
 type Metadata struct {
-	TotalCount   int    `json:"totalCount"`
-	ForwardLink  string `json:"forwardLink"`
-	BackwardLink string `json:"backwardLink"`
-	SyncState    string `json:"syncState"`
+	TotalCount                   int    `json:"totalCount"`
+	ForwardLink                  string `json:"forwardLink"`
+	BackwardLink                 string `json:"backwardLink"`
+	SyncState                    string `json:"syncState"`
+	LastCompleteSegmentStartTime int    `json:"lastCompleteSegmentStartTime"`
+	LastCompleteSegmentEndTime   int    `json:"lastCompleteSegmentEndTime"`
 }
 
 type ConversationsClient struct {
@@ -434,7 +465,6 @@ func (c *Conn) SetConversationThreads(id string, data map[string]string) (body s
 	return
 }
 
-
 type ConsumptionHorizonsRsp struct {
 	Id                  string               `json:"id"`
 	Version             string               `json:"version"`
@@ -444,6 +474,7 @@ type ConsumptionHorizon struct {
 	ConsumptionHorizon string `json:"consumptionhorizon"`
 	Id                 string `json:"id"`
 }
+
 /**
 Fetch all members in conversation
 @params
@@ -484,7 +515,7 @@ func (c *Conn) CreateConversationGroup(members Members) (err error) {
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
-		"Location": "/",
+		"Location":          "/",
 	}
 
 	data := members
@@ -524,7 +555,7 @@ func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 /**
  * Remove Member From Conversation
  */
-func (c *Conn)RemoveMember(conversationId string, userId string) (err error) {
+func (c *Conn) RemoveMember(conversationId string, userId string) (err error) {
 	//DELETE Request URL: https://client-s.gateway.messenger.live.com/v1/threads/1434A0b436022fd0d84342916c3435c0432c3412%40thread.skype/members/8:live:.cid.db9****2b51cc
 	path := fmt.Sprintf("%s/v1/threads/%s/members/%s", c.LoginInfo.LocationHost, conversationId, userId)
 	req := Request{timeout: 30}
@@ -564,7 +595,7 @@ func (c *Conn)GetConJoinUrl(conversationId string)  {
 /**
  * Retrieve the join URL for a group conversation, if it is currently public.
  */
-func (c *Conn)JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) {
+func (c *Conn) JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) {
 	joinUrlArr := strings.Split(joinUrl, ".com/")
 	//join url e.g https://join.skype.com/IYu****iqUIu
 	path := fmt.Sprintf("%s/api/v2/conversation/", API_JOIN)
@@ -577,7 +608,7 @@ func (c *Conn)JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) {
 	}
 	data := map[string]string{
 		"shortId": joinUrlArr[1],
-		"type":   "wl",
+		"type":    "wl",
 	}
 	params, _ := json.Marshal(data)
 	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
@@ -590,4 +621,33 @@ func (c *Conn)JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) {
 	return
 }
 
+func (c *Conn) GetMessages(conversationId string, nextURL string, pagesize string) (res MessageBackData, err error) {
+	path := ""
+	pathurl := ""
+	if len(nextURL) > 0 {
+		pathurl = nextURL
+	} else {
+		path = fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, conversationId)
+		data := url.Values{}
+		data.Set("startTime", "0")
+		data.Set("pageSize", pagesize)
+		data.Set("view", "supportsExtendedHistory|msnp24Equivalent|supportsMessageProperties")
+		pathurl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(data))
+	}
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"BehaviorOverride":  "redirectAs404",
+		"Sec-Fetch-Dest":    "empty",
+		"Sec-Fetch-Mode":    "cors",
+		"Sec-Fetch-Site":    "cross-site",
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
+	}
 
+	body, err, _ := req.request("get", pathurl, nil, nil, headers)
+	if err != err {
+		return
+	}
+	json.Unmarshal([]byte(body), &res)
+	return
+}

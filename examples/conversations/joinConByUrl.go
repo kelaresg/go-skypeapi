@@ -50,6 +50,8 @@ func main5() {
 	}
 	mewMembers := skype.Members{}
 	mewMembers.Members = append(mewMembers.Members, member2)
-	cli.AddMember(mewMembers, rsp.Resource)
+
+	cli.AddMember( mewMembers, rsp.Resource)
+
 	fmt.Println("-----------------------------end-------------------------------")
 }
