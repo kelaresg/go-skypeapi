@@ -3,9 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/kelaresg/go-skypeapi"
 	"github.com/spf13/viper"
 	"os"
-	"github.com/kelaresg/go-skypeapi"
 	"strings"
 )
 
@@ -50,6 +50,8 @@ func main5() {
 	}
 	mewMembers := skype.Members{}
 	mewMembers.Members = append(mewMembers.Members, member2)
+
 	cli.AddMember( mewMembers, rsp.Resource)
+
 	fmt.Println("-----------------------------end-------------------------------")
 }

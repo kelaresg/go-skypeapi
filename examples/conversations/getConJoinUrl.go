@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/kelaresg/go-skypeapi"
 	"github.com/spf13/viper"
+	"os"
+	"strings"
 )
 
 /**
@@ -21,7 +23,6 @@ func main444() {
 	//c := skype.Conn{}
 
 	//testUserId := "8:"+cli.UserProfile.Username
-	// "19:0be6022fd0d843b4916cf5c0492c3412@thread.skype"
 	//fmt.Printf("\niuput conversationId and enter to get url:")
 	//inputReader := bufio.NewReader(os.Stdin)
 	//input, err := inputReader.ReadString('\n')
@@ -29,11 +30,18 @@ func main444() {
 	//	fmt.Printf("err: %s\n", err)
 	//	return
 	//}
-	////"19:0be6022fd0d843b4916cf5c0492c3412@thread.skype"
 	//inputArr := strings.Split(input, " ")
 	//conversationId := inputArr[0]
 	//fmt.Println()
-	cli.GetConJoinUrl("19:b44b8a9b030e4fe4a2400d517c9f31c8@thread.skype")
+	fmt.Printf("\niuput conversationId and enter to get url:")
+	inputReader := bufio.NewReader(os.Stdin)
+	input, err := inputReader.ReadString('\n')
+	if err != nil {
+		fmt.Printf("err: %s\n", err)
+		return
+	}
+	inputArr := strings.Split(input, " ")
+	cli.GetConJoinUrl(inputArr[0])
 
 	fmt.Println("-----------------------------end-------------------------------")
 }

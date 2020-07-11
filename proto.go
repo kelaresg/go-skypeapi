@@ -24,7 +24,7 @@ const (
 	API_MSGSHOST = "https://client-s.gateway.messenger.live.com"
 	API_DIRECTORY = "https://skypegraph.skype.com/search/v1.1/namesearch/swx/"
 	API_CONFIG = "https://a.config.skype.com/config/v1"
-	API_JOIN_URL = "https://api.scheduler.skype.com/threads"
+	API_JOIN_URL = "https://api.join.skype.com/v1/meetings"//"https://api.scheduler.skype.com/threads"
 )
 
 const (

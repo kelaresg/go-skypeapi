@@ -337,6 +337,34 @@ func (c *Conn) GetConversations() (err error) {
 	json.Unmarshal([]byte(body), data)
 	c.ConversationsList = data
 	c.updateChats(data.Conversations)
+	if len(data.Metadata.BackwardLink) > 0 {
+		_ = c.GetConversationsBackward(data.Metadata.BackwardLink)
+	}
+	return
+}
+
+func (c *Conn) GetConversationsBackward(link string) (err error) {
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
+		"BehaviorOverride":  "redirectAs404",
+		"Sec-Fetch-Dest":    "empty",
+		"Sec-Fetch-Mode":    "cors",
+		"Sec-Fetch-Site":    "cross-site",
+	}
+	for k, v := range headers {
+		fmt.Println(k, ":", v)
+	}
+
+	body, err := req.HttpGetWitHeaderAndCookiesJson(link, nil, "", nil, headers)
+	data := &ConversationsList{}
+	json.Unmarshal([]byte(body), data)
+	c.ConversationsList = data
+	c.updateChats(data.Conversations)
+	if len(data.Metadata.BackwardLink)> 0 {
+		_ = c.GetConversationsBackward(data.Metadata.BackwardLink)
+	}
 	return
 }
 
@@ -547,22 +575,16 @@ func (c *Conn) RemoveMember(conversationId string, userId string) (err error) {
 /**
  * Retrieve the join URL for a group conversation, if it is currently public.
  */
-func (c *Conn) GetConJoinUrl(conversationId string) {
-	path := fmt.Sprintf("%s", API_JOIN_URL)
-	fmt.Println(path)
+func (c *Conn)GetConJoinUrl(conversationId string)  {
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		//"Authentication":    "skypetoken=" + skypeToken,
-		//"RegistrationToken": regToken,
-		//"BehaviorOverride":  "redirectAs404",
-		"X-Skypetoken": c.LoginInfo.SkypeToken,
+		"X-Skypetoken":     c.LoginInfo.SkypeToken,
 	}
 	data := map[string]string{
-		"baseDomain": "https://join.skype.com/launch/",
 		"threadId":   conversationId,
 	}
 	params, _ := json.Marshal(data)
-	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
+	body, err, _ := req.request("POST", API_JOIN_URL, strings.NewReader(string(params)), nil, headers)
 	if err != nil {
 		fmt.Println("get join url err: ", err)
 	}
