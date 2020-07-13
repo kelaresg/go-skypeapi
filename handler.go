@@ -77,6 +77,12 @@ type UserPresenceHandler interface {
 }
 
 //A user”s availability has changed
+type UserTypingHandler interface {
+	Handler
+	HandleTypingStatus(message Resource)
+}
+
+//A user”s availability has changed
 type ConversationHandler interface {
 	Handler
 	HandleConversation()
@@ -140,10 +146,10 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 		//	return
 		//}
 		//_ = json.Unmarshal([]byte(message.Resource), &resource)
-		ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
+		//ConversationLinkArr := strings.Split(message.Resource.ConversationLink, "/conversations/")
 		t, _ := time.Parse(time.RFC3339,message.Resource.ComposeTime)
-		message.Resource.Jid = ConversationLinkArr[1]
 		message.Resource.Timestamp = t.Unix()
+		message.Resource.GetFromMe(c)
 		if message.Resource.MessageType == "RichText" || message.Resource.MessageType == "Text" {
 			for _, h := range handlers {
 				if x, ok := h.(TextMessageHandler); ok {
@@ -235,9 +241,25 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 				}
 			}
 		} else if message.Resource.MessageType == "Control/Typing" {
-
+			for _, h := range handlers {
+				if x, ok := h.(UserTypingHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleTypingStatus(message.Resource)
+					} else {
+						go x.HandleTypingStatus(message.Resource)
+					}
+				}
+			}
 		} else if message.Resource.MessageType == "Control/ClearTyping" {
-
+			for _, h := range handlers {
+				if x, ok := h.(UserTypingHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleTypingStatus(message.Resource)
+					} else {
+						go x.HandleTypingStatus(message.Resource)
+					}
+				}
+			}
 		} else if message.Resource.MessageType == "ThreadActivity/AddMember" {
 			for _, h := range handlers {
 				if x, ok := h.(ChatUpdateHandler); ok {

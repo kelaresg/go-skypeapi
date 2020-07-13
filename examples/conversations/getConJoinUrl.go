@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/kelaresg/go-skypeapi"
 	"github.com/spf13/viper"

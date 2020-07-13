@@ -8,8 +8,6 @@ import (
 
 const DEFAULT_USER string = "ME"
 const DEFAULT_ENDPOINT string = "SELF"
-const POLL_URL = "/v1/users/ME/endpoints/{92c6524e-7a60-454d-a555-06dbe51a419c}/subscriptions/0/poll?ackId=1039"
-const MSGS_HOST = "https://azwcus1-client-s.gateway.messenger.live.com"
 
 type message interface {
 	Get(url string)
