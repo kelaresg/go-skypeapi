@@ -110,6 +110,7 @@ type ShareLink struct {
 	Id  string `json:"id"`
 	Url string `json:"url"`
 }
+
 type Resource struct {
 	ConversationLink      string      `json:"conversationLink"`
 	Type                  string      `json:"type"`
@@ -136,7 +137,10 @@ type Resource struct {
 	Timestamp             int64       `json:"timestamp"` // custom filed
 	UserPresence
 	EndpointPresence
-	Amsreferences []string `json:"amsreferences"`
+	AmsReferences []string `json:"amsreferences"`
+	Properties    struct {
+		UrlPreviews string `json:"urlpreviews"`
+	} `json:"properties"`
 }
 
 type UserPresence struct {
@@ -195,33 +199,6 @@ type XmlContent struct {
 	Eventtime    string   `xml:"eventtime"`
 	Initiator    string   `xml:"initiator"`
 	Target       string   `xml:"target"`
-}
-
-//message struct
-type SignMessage struct {
-	Ackrequired         string `json:"ackrequired"`         // "https://client-s.gateway.messenger.live.com/v1/users/ME/conversations/ALL/messages/1451606400000/ack",
-	Clientmessageid     string `json:"clientmessageid"`     // "1451606399999",
-	Composetime         string `json:"composetime"`         // "2016-01-01T00:00:00.000Z",
-	Content             string `json:"content"`             // "A message for the team.",
-	Contenttype         string `json:"contenttype"`         // "text",
-	ConversationLink    string `json:"conversationLink"`    // "https://client-s.gateway.messenger.live.com/v1/users/ME/conversations/19:a0b1c2...d3e4f5@thread.skype",
-	From                string `json:"from"`                // "https://client-s.gateway.messenger.live.com/v1/users/ME/contacts/8:anna.7",
-	Id                  string `json:"id"`                  // "1451606400000",
-	Imdisplayname       string `json:"imdisplayname"`       // "Anna Cooper",
-	Isactive            bool   `json:"isactive"`            // True,
-	Messagetype         string `json:"messagetype"`         // "RichText",
-	Originalarrivaltime string `json:"originalarrivaltime"` // "22016-01-01T00:00:00.000Z",
-	Threadtopic         string `json:"threadtopic"`         // "Team chat",
-	Type                string `json:"type"`                // "Message",
-	Version             string `json:"version"`             // "1451606400000"
-	Properties          struct {
-		Urlpreviews string `json:"urlpreviews"`
-	} `json:"properties"`
-	Conversationid string `json:"conversationid"`
-}
-type MessageBackData struct {
-	Messages []SignMessage `json:"messages"`
-	Metadata Metadata `json:"_metadata"`
 }
 
 func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMessage *MediaMessageContent, err error) {
@@ -420,9 +397,6 @@ func (c *Conn) GetConversationThreads(apiHost string, skypeToken string, regToke
 		"Sec-Fetch-Mode":    "cors",
 		"Sec-Fetch-Site":    "cross-site",
 	}
-	for k, v := range headers {
-		fmt.Println(k, ":", v)
-	}
 
 	params := url.Values{}
 	params.Set("startTime", "0")
@@ -451,9 +425,6 @@ func (c *Conn) SetConversationThreads(id string, data map[string]string) (body s
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
 		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 		"BehaviorOverride":  "redirectAs404",
-	}
-	for k, v := range headers {
-		fmt.Println(k, ":", v)
 	}
 
 	queryParams := url.Values{}
@@ -523,9 +494,6 @@ func (c *Conn) CreateConversationGroup(members Members) (err error) {
 
 	data := members
 	params, _ := json.Marshal(data)
-	fmt.Println("params: ")
-	fmt.Println(members)
-	//return
 	body, err, _ := req.request("post", path, strings.NewReader(string(params)), nil, headers)
 	fmt.Println("CreateConversationGroup resp: ", body)
 	return
@@ -625,18 +593,46 @@ func (c *Conn) JoinConByCode(joinUrl string) (err error, conInfo JoinToConInfo) 
 	return
 }
 
-func (c *Conn) GetMessages(conversationId string, nextURL string, pagesize string) (res MessageBackData, err error) {
+//message struct
+type SignMessage struct {
+	AckRequired         string `json:"ackrequired"`         // "https://client-s.gateway.messenger.live.com/v1/users/ME/conversations/ALL/messages/1451606400000/ack",
+	ClientMessageId     string `json:"clientmessageid"`     // "1451606399999",
+	ComposeTime         string `json:"composetime"`         // "2016-01-01T00:00:00.000Z",
+	Content             string `json:"content"`             // "A message for the team.",
+	ContentType         string `json:"contenttype"`         // "text",
+	ConversationLink    string `json:"conversationLink"`    // "https://client-s.gateway.messenger.live.com/v1/users/ME/conversations/19:a0b1c2...d3e4f5@thread.skype",
+	From                string `json:"from"`                // "https://client-s.gateway.messenger.live.com/v1/users/ME/contacts/8:anna.7",
+	Id                  string `json:"id"`                  // "1451606400000",
+	ImDisplayName       string `json:"imdisplayname"`       // "Anna Cooper",
+	IsActive            bool   `json:"isactive"`            // True,
+	MessageType         string `json:"messagetype"`         // "RichText",
+	OriginalArrivalTime string `json:"originalarrivaltime"` // "22016-01-01T00:00:00.000Z",
+	ThreadTopic         string `json:"threadtopic"`         // "Team chat",
+	Type                string `json:"type"`                // "Message",
+	Version             string `json:"version"`             // "1451606400000"
+	Properties          struct {
+		UrlPreviews string `json:"urlpreviews"`
+	} `json:"properties"`
+	ConversationId string `json:"conversationid"`
+}
+
+type MessageBackData struct {
+	Messages []Resource `json:"messages"`
+	Metadata Metadata `json:"_metadata"`
+}
+
+func (c *Conn) GetMessages(conversationId string, nextURL string, pageSize string) (res MessageBackData, err error) {
 	path := ""
-	pathurl := ""
+	pathUrl := ""
 	if len(nextURL) > 0 {
-		pathurl = nextURL
+		pathUrl = nextURL
 	} else {
 		path = fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages", c.LoginInfo.LocationHost, conversationId)
 		data := url.Values{}
 		data.Set("startTime", "0")
-		data.Set("pageSize", pagesize)
+		data.Set("pageSize", pageSize)
 		data.Set("view", "supportsExtendedHistory|msnp24Equivalent|supportsMessageProperties")
-		pathurl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(data))
+		pathUrl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(data))
 	}
 	req := Request{timeout: 30}
 	headers := map[string]string{
@@ -648,10 +644,13 @@ func (c *Conn) GetMessages(conversationId string, nextURL string, pagesize strin
 		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
 	}
 
-	body, err, _ := req.request("get", pathurl, nil, nil, headers)
-	if err != err {
+	body, err, _ := req.request("get", pathUrl, nil, nil, headers)
+	if err != nil {
 		return
 	}
-	json.Unmarshal([]byte(body), &res)
+	err = json.Unmarshal([]byte(body), &res)
+	if err != nil {
+		return
+	}
 	return
 }
