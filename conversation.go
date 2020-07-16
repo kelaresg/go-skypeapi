@@ -257,7 +257,7 @@ func (Re *Resource) GetFromMe(ce *Conn) bool {
 		FromArr := strings.Split(Re.From, "/contacts/")
 		Re.SendId = FromArr[1]
 	}
-	if ce.UserProfile != nil && ce.UserProfile.Username != "" && ce.UserProfile.Username == Re.SendId {
+	if ce.UserProfile != nil && ce.UserProfile.Username != "" && "8:" + ce.UserProfile.Username == Re.SendId {
 		fmt.Println()
 		fmt.Println("GetFromMe true: ", ce.UserProfile.Username, Re.SendId)
 		fmt.Println()
