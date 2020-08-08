@@ -51,6 +51,12 @@ type ContactMessageHandler interface {
 	HandleContactMessage(message Resource)
 }
 
+//messagetype: RichText/UriObject
+type LocationMessageHandler interface {
+	Handler
+	HandleLocationMessage(message Resource)
+}
+
 
 //messagetype:
 type VideoMessageHandler interface {
@@ -177,6 +183,16 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 						x.HandleContactMessage(message.Resource)
 					} else {
 						go x.HandleContactMessage(message.Resource)
+					}
+				}
+			}
+		} else if message.Resource.MessageType == "RichText/Location" {
+			for _, h := range handlers {
+				if x, ok := h.(LocationMessageHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleLocationMessage(message.Resource)
+					} else {
+						go x.HandleLocationMessage(message.Resource)
 					}
 				}
 			}

@@ -194,6 +194,33 @@ type MediaMessageContent struct {
 	} `xml:"meta"`
 }
 
+type LocationMessageContent struct {
+	XMLName             xml.Name `xml:"location"` //
+	IsUserLocation      string   `xml:"isUserLocation,attr"`
+	Latitude            string   `xml:"latitude,attr"`
+	Longitude           string   `xml:"longitude,attr"`
+	TimeStamp           string   `xml:"timeStamp,attr"`
+	Timezone            string   `xml:"timezone,attr"`
+	Locale              string   `xml:"locale,attr"`
+	Language            string   `xml:"language,attr"`
+	Address             string   `xml:"address,attr"`
+	AddressFriendlyName string   `xml:"addressFriendlyName,attr"`
+	ShortAddress        string   `xml:"shortAddress,attr"`
+	UserMri             string   `xml:"userMri,attr"`
+	A                   struct {
+		Href string `xml:"href,attr"`
+	} `xml:"a"`
+}
+
+func (Re *Resource) ParseLocation() (locationMessage *LocationMessageContent, err error) {
+	locationMessage = &LocationMessageContent{}
+	err = xml.Unmarshal([]byte(Re.Content), locationMessage)
+	if err != nil {
+		return nil, err
+	}
+	return locationMessage, nil
+}
+
 type XmlContent struct {
 	Deletemember xml.Name `xml:"deletemember"`
 	Eventtime    string   `xml:"eventtime"`
