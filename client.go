@@ -2,6 +2,7 @@ package skype
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/gogf/gf/encoding/gurl"
@@ -66,36 +67,156 @@ func NewConn() (cli *Conn, err error) {
 login Skype by web auth
 */
 func (c *Conn) Login(username, password string) (session Session, err error) {
-	MSPRequ, MSPOK, PPFT, err := c.getParams()
+	err = c.GetTokeBySOAP(username, password)
+	if err != nil {
+		return Session{}, err
+	}
 
-	if err != nil {
-		return Session{}, errors.New("params get error")
-	}
-	//1. send username password
-	_, err, tValue := c.sendCred(username, password, MSPRequ, MSPOK, PPFT)
-	if err != nil {
-		return Session{}, errors.New("sendCred get error")
-	}
-	if tValue == "" {
-		return Session{}, errors.New("Please confirm that your username/password is entered correctly ")
-	}
-	//2. get token and RegistrationExpires
-	err = c.getToken(tValue)
-	if err != nil {
-		return Session{}, errors.New("Get token error ")
-	}
 	//获得用户SkypeRegistrationTokenProvider
 	c.LoginInfo.LocationHost = API_MSGSHOST
 	err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
 	if err != nil {
 		return Session{}, errors.New("SkypeRegistrationTokenProvider get error")
 	}
+
 	//请求获得用户的id （类型  string）
 	err = c.GetUserId(c.LoginInfo.SkypeToken)
 	if err != nil {
 		return Session{}, errors.New("GetUserId get error")
 	}
 	return *c.LoginInfo, nil
+}
+
+// Because the login policy of skype changes,
+// this method of obtaining token does not currently work
+func (c *Conn) GetTokeByAuthLive(username, password string) error {
+	MSPRequ, MSPOK, PPFT, err := c.getParams()
+	if MSPOK == "" || MSPRequ == "" || PPFT == "" || err != nil {
+		return errors.New("params get error")
+	}
+
+	//1. send username password
+	_, err, tValue := c.sendCred(username, password, MSPRequ, MSPOK, PPFT)
+	if err != nil {
+		return errors.New("sendCred get error")
+	}
+	if tValue == "" {
+		return errors.New("Logig failed, Can not find 't' value")
+	}
+
+	//2. get token and RegistrationExpires
+	err = c.getToken(tValue)
+	if err != nil {
+		return errors.New("Get token error ")
+	}
+	return nil
+}
+
+func (c *Conn) GetTokeBySOAP(username, password string) error {
+	// An authentication provider that connects via Microsoft account SOAP authentication.
+	template := `
+    <Envelope xmlns='http://schemas.xmlsoap.org/soap/envelope/'
+       xmlns:wsse='http://schemas.xmlsoap.org/ws/2003/06/secext'
+       xmlns:wsp='http://schemas.xmlsoap.org/ws/2002/12/policy'
+       xmlns:wsa='http://schemas.xmlsoap.org/ws/2004/03/addressing'
+       xmlns:wst='http://schemas.xmlsoap.org/ws/2004/04/trust'
+       xmlns:ps='http://schemas.microsoft.com/Passport/SoapServices/PPCRL'>
+       <Header>
+           <wsse:Security>
+               <wsse:UsernameToken Id='user'>
+                   <wsse:Username>%s</wsse:Username>
+                   <wsse:Password>%s</wsse:Password>
+               </wsse:UsernameToken>
+           </wsse:Security>
+       </Header>
+       <Body>
+           <ps:RequestMultipleSecurityTokens Id='RSTS'>
+               <wst:RequestSecurityToken Id='RST0'>
+                   <wst:RequestType>http://schemas.xmlsoap.org/ws/2004/04/security/trust/Issue</wst:RequestType>
+                   <wsp:AppliesTo>
+                       <wsa:EndpointReference>
+                           <wsa:Address>wl.skype.com</wsa:Address>
+                       </wsa:EndpointReference>
+                   </wsp:AppliesTo>
+                   <wsse:PolicyReference URI='MBI_SSL'></wsse:PolicyReference>
+               </wst:RequestSecurityToken>
+           </ps:RequestMultipleSecurityTokens>
+       </Body>
+    </Envelope>`
+	data := fmt.Sprintf(template, ReplaceSymbol(username), ReplaceSymbol(password))
+
+	req := Request{timeout: 30}
+	body, err := req.HttpPostWitHeaderAndCookiesJson(fmt.Sprintf("%s/RST.srf", API_MSACC), nil, data, nil, nil)
+	if err != nil {
+		return errors.New("get token err: couldn't retrieve security token from login response ")
+	}
+
+	var envelopeResult EnvelopeXML
+	err = xml.Unmarshal([]byte(body), &envelopeResult)
+	if err != nil {
+		return errors.New("get token err: parse EnvelopeXML err")
+	}
+
+	if envelopeResult.Body.Collection.Response.ReSeToken.BinarySecurityToken == "" {
+		return errors.New("get token err: can not find BinarySecurityToken")
+	}
+	data2 := map[string]interface{}{
+		"partner":     999,
+		"access_token": envelopeResult.Body.Collection.Response.ReSeToken.BinarySecurityToken,
+		"scopes": "client",
+	}
+	params, _ := json.Marshal(data2)
+	body, err = req.HttpPostWitHeaderAndCookiesJson(API_EDGE, nil, string(params), nil, nil)
+
+	if err != nil {
+		fmt.Println("exchangeToken err: ", err)
+		return errors.New("get token err: exchangeToken err")
+	}
+
+	edgeResp := EdgeResp{}
+	json.Unmarshal([]byte(body), &edgeResp)
+	c.LoginInfo = &Session{
+		SkypeToken:   edgeResp.SkypeToken,
+		SkypeExpires: edgeResp.ExpiresIn,
+	}
+	return nil
+}
+
+type EnvelopeXML struct {
+	XMLName  xml.Name `xml:"Envelope"` // 指定最外层的标签为config
+	Header string `xml:"Header"` // 读取smtpServer配置项，并将结果保存到SmtpServer变量中
+	Body EnvelopeBody `xml:"Body"` // 读取receivers标签下的内容，以结构方式获取
+}
+
+type EnvelopeBody struct {
+	Collection RequestSecurityTokenResponseCollection `xml:"RequestSecurityTokenResponseCollection"`
+}
+
+type RequestSecurityTokenResponseCollection struct {
+	Response RequestSecurityTokenResponse `xml:"RequestSecurityTokenResponse"`
+}
+
+type RequestSecurityTokenResponse struct {
+	TokenType string `xml:"TokenType"`
+	AppliesTo string `xml:"AppliesTo"`
+	LifeTime string `xml:"LifeTime"`
+	ReSeToken RequestedSecurityToken `xml:"RequestedSecurityToken"`
+}
+
+type RequestedSecurityToken struct {
+	BinarySecurityToken string `xml:"BinarySecurityToken"`
+}
+
+type EdgeResp struct {
+	SkypeToken string `json:"skypetoken"`
+	ExpiresIn string `json:"expiresIn"`
+	SkypeId string `json:"skypeid"`
+	SignInName string `json:"signinname"`
+	Anid string `json:"anid"`
+	Status struct{
+		Code int32 `json:"code"`
+		Text string `json:"text"`
+	} `json:"status"`
 }
 
 /**
@@ -372,10 +493,13 @@ func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string
 		"MSPOK":   MSPOK,
 		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
 	}
-	paramsMap.Add("login", username)
-	paramsMap.Add("passwd", pwd)
-	paramsMap.Add("PPFT", PPFT)
-	query, _ := json.Marshal(paramsMap)
+	formParams := url.Values{}
+	formParams.Add("login", username)
+	formParams.Add("passwd", pwd)
+	formParams.Add("PPFT", PPFT)
+
+	query, _ := json.Marshal(formParams)
+	fmt.Println()
 	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), paramsMap, string(query), cookies, "t")
 	return
 }

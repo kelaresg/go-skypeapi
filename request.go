@@ -157,7 +157,7 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 		return
 	}
 
-	agent := "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36"
+	agent := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36"
 	//add commom header
 	req1.Header.Set("Accept", "*/*")
 	req1.Header.Set("Accept-Charset", "utf-8;")

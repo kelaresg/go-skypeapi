@@ -7,6 +7,7 @@ package skype
 const (
 	API_LOGIN = "https://login.skype.com/login"
 	API_MSACC = "https://login.live.com"
+	API_EDGE = "https://edge.skype.com/rps/v1/rps/skypetoken"
 	API_USER = "https://api.skype.com"
 	API_LOGIN_WEB="https://web.skype.com/login"
 	API_PROFILE = "https://profile.skype.com/profile/v1"

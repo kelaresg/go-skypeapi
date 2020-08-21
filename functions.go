@@ -214,3 +214,10 @@ func UriObject(content, filetype, docId, url, thumb, title, desc string, duratio
 	objStr := fmt.Sprintf(`<URIObject type="%s" uri="%s" %s %s %s>%s%s%s%s</URIObject>`, filetype, url, Durationms, thumbAttr, docIdTag, titleTag, descTag, valTags, content)
 	return objStr
 }
+
+func ReplaceSymbol(str string) string  {
+	str = strings.ReplaceAll(str, "&", "&amp;")
+	str = strings.ReplaceAll(str, "<", "&lt;")
+	str = strings.ReplaceAll(str, ">", "&gt;")
+	return str
+}
