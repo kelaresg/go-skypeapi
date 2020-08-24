@@ -148,7 +148,8 @@ func (c *Conn) GetTokeBySOAP(username, password string) error {
 	req := Request{timeout: 30}
 	body, err := req.HttpPostWitHeaderAndCookiesJson(fmt.Sprintf("%s/RST.srf", API_MSACC), nil, data, nil, nil)
 	if err != nil {
-		return errors.New("get token err: couldn't retrieve security token from login response ")
+		fmt.Println("getSecToken err: ", err)
+		return errors.New("get token err: couldn't retrieve security token from login response")
 	}
 
 	var envelopeResult EnvelopeXML
@@ -156,10 +157,10 @@ func (c *Conn) GetTokeBySOAP(username, password string) error {
 	if err != nil {
 		return errors.New("get token err: parse EnvelopeXML err")
 	}
-
 	if envelopeResult.Body.Collection.Response.ReSeToken.BinarySecurityToken == "" {
-		return errors.New("get token err: can not find BinarySecurityToken")
+		return errors.New("get token err: can not find BinarySecurityToken: \n" + body)
 	}
+
 	data2 := map[string]interface{}{
 		"partner":     999,
 		"access_token": envelopeResult.Body.Collection.Response.ReSeToken.BinarySecurityToken,
@@ -175,6 +176,9 @@ func (c *Conn) GetTokeBySOAP(username, password string) error {
 
 	edgeResp := EdgeResp{}
 	json.Unmarshal([]byte(body), &edgeResp)
+	if edgeResp.SkypeToken == "" || edgeResp.ExpiresIn == "" {
+		return errors.New(fmt.Sprintf("err status code: %s, status text: %s,", strconv.FormatInt(int64(edgeResp.Status.Code), 10), edgeResp.Status.Text))
+	}
 	c.LoginInfo = &Session{
 		SkypeToken:   edgeResp.SkypeToken,
 		SkypeExpires: edgeResp.ExpiresIn,
@@ -308,7 +312,6 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 						}
 					}
 				}
-
 			}
 		}
 	}
