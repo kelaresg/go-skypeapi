@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/spf13/viper"
-	"os"
 	"github.com/kelaresg/go-skypeapi"
-	"strings"
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -21,7 +18,7 @@ func main() {
 	_, err = cli.Login(username, pwd)
 
 	//c := skype.ConversationsClient{}
-	cli.GetConversations()
+	cli.GetConversations("")
 	fmt.Println("conversations:", cli.ConversationsList)
 	for _, v := range cli.ConversationsList.Conversations {
 		fmt.Println("conversation id :", v.Id)

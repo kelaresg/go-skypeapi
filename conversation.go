@@ -318,9 +318,17 @@ type ConversationsClient struct {
 /**
 This returns an array of conversations that the current user has most recently interacted with
 */
-func (c *Conn) GetConversations() (err error) {
+func (c *Conn) GetConversations(link string) (err error) {
 	//API_MSGSHOST
-	path := fmt.Sprintf("%s/v1/users/ME/conversations", c.LoginInfo.LocationHost)
+	params := url.Values{}
+	if len(link) < 1 {
+		link = fmt.Sprintf("%s/v1/users/ME/conversations", c.LoginInfo.LocationHost)
+		params.Set("startTime", "0")
+		params.Set("view", "msnp24Equivalent")
+		params.Set("targetType", "Passport|Skype|Lync|Thread")
+		params.Set("pageSize", "20")
+
+	}
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
@@ -334,18 +342,13 @@ func (c *Conn) GetConversations() (err error) {
 		fmt.Println(k, ":", v)
 	}
 
-	params := url.Values{}
-	params.Set("startTime", "0")
-	params.Set("view", "msnp24Equivalent")
-	params.Set("targetType", "Passport|Skype|Lync|Thread")
-	//params.Set("pageSize", "30")
-	body, err := req.HttpGetWitHeaderAndCookiesJson(path, params, "", nil, headers)
+	body, err := req.HttpGetWitHeaderAndCookiesJson(link, params, "", nil, headers)
 	data := &ConversationsList{}
 	json.Unmarshal([]byte(body), data)
 	c.ConversationsList = data
 	c.updateChats(data.Conversations)
 	if len(data.Metadata.BackwardLink) > 0 {
-		_ = c.GetConversationsBackward(data.Metadata.BackwardLink)
+		_ = c.GetConversations(data.Metadata.BackwardLink)
 	}
 	return
 }
