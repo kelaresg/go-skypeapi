@@ -176,12 +176,12 @@ func (c *Conn) GetTokeBySOAP(username, password string) error {
 
 	edgeResp := EdgeResp{}
 	json.Unmarshal([]byte(body), &edgeResp)
-	if edgeResp.SkypeToken == "" || edgeResp.ExpiresIn == "" {
+	if edgeResp.SkypeToken == "" || edgeResp.ExpiresIn == 0 {
 		return errors.New(fmt.Sprintf("err status code: %s, status text: %s,", strconv.FormatInt(int64(edgeResp.Status.Code), 10), edgeResp.Status.Text))
 	}
 	c.LoginInfo = &Session{
 		SkypeToken:   edgeResp.SkypeToken,
-		SkypeExpires: edgeResp.ExpiresIn,
+		SkypeExpires: strconv.FormatInt(int64(edgeResp.ExpiresIn), 10),
 	}
 	return nil
 }
@@ -213,7 +213,7 @@ type RequestedSecurityToken struct {
 
 type EdgeResp struct {
 	SkypeToken string `json:"skypetoken"`
-	ExpiresIn string `json:"expiresIn"`
+	ExpiresIn int32 `json:"expiresIn"`
 	SkypeId string `json:"skypeid"`
 	SignInName string `json:"signinname"`
 	Anid string `json:"anid"`
