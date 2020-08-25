@@ -359,26 +359,6 @@ func (req *Request) HttpPutWitHeaderAndCookiesJson (path string, params url.Valu
 	if len(params) >0 {
 		reqUrl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(params))
 	}
-	resp, err := req.requestReturnResponse("PUT", reqUrl, strings.NewReader(data), cookies, headers)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-	content, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(" request body", resp.Request)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if resp.StatusCode == 302 {
-		location := resp.Header.Get("Location")
-		body = location
-	} else {
-		body = string(content)
-		//fmt.Printf("%s", resp.Header)
-		fmt.Println(resp.Header)
-	}
-	//
-	httpCode = resp.StatusCode
+	body, err, httpCode = req.request("PUT", reqUrl, strings.NewReader(data), cookies, headers)
 	return
 }

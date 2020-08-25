@@ -684,3 +684,21 @@ func (c *Conn) GetMessages(conversationId string, nextURL string, pageSize strin
 	}
 	return
 }
+
+// https://azwcus1-client-s.gateway.messenger.live.com/v1/users/ME/conversations/19%3Aafc6356ebb4e43098f252ede72b13ac6%40thread.skype/messages/1597060236482
+func (c *Conn) DeleteMessage(conversationId string, messageId string)  {
+	path := fmt.Sprintf("%s/v1/users/ME/conversations/%s/messages/%s", c.LoginInfo.LocationHost, conversationId, messageId)
+	fmt.Println(path)
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
+		"RegistrationToken": c.LoginInfo.RegistrationTokenStr,
+		"BehaviorOverride":  "redirectAs404",
+	}
+	body, err, _ := req.request("DELETE", path, nil, nil, headers)
+	if err != nil {
+		fmt.Println("DeleteMessage by code err: ", err)
+	}
+	fmt.Println("DeleteMessage by code resp: ", body)
+	return
+}
