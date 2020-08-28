@@ -117,6 +117,7 @@ type Resource struct {
 	EventId               string      `json:"eventId"`
 	From                  string      `json:"from"`
 	ClientMessageId       string      `json:"clientmessageid"`
+	SkypeEditedId         string      `json:"skypeeditedid"`
 	Version               interface{} `json:"version"` // string|number
 	MessageType           string      `json:"messagetype"`
 	CounterPartyMessageId string      `json:"counterpartymessageid"`
