@@ -339,7 +339,6 @@ func (req *Request) HttpGetWitHeaderAndCookiesJson(path string, params url.Value
 	if len(params) >0 {
 		reqUrl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(params))
 	}
-	println("HttpGetWitHeaderAndCookiesJson:", reqUrl)
 	body, err, _ = req.request("GET", reqUrl, nil, cookies, headers)
 	return
 }
@@ -349,7 +348,6 @@ func (req *Request) HttpPostWitHeaderAndCookiesJson(path string, params url.Valu
 	if len(params) >0 {
 		reqUrl = fmt.Sprintf("%s?%s", path, gurl.BuildQuery(params))
 	}
-	println("HttpPostWitHeaderAndCookiesJson:", reqUrl)
 	body, err, _ = req.request("POST", reqUrl, strings.NewReader(data), cookies, headers)
 	return
 }

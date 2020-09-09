@@ -275,10 +275,7 @@ func (c *Conn) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
 		"endpointFeatures": "Agent",
 	}
 	params, _ := json.Marshal(data)
-	fmt.Println(c.LoginInfo.LocationHost + "/v1/users/" + DEFAULT_USER + "/endpoints")
 	registrationTokenStr, location, err := req.HttpPostRegistrationToken(c.LoginInfo.LocationHost+"/v1/users/"+DEFAULT_USER+"/endpoints", string(params), header)
-	println("registrationTokenStr: ", registrationTokenStr)
-	println("location: ", location)
 	locationArr := strings.Split(location, "/v1")
 	c.storeInfo(registrationTokenStr, c.LoginInfo.LocationHost)
 	if locationArr[0] != c.LoginInfo.LocationHost {
