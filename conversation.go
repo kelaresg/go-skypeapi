@@ -537,7 +537,6 @@ func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 	//API_MSGSHOST
 	//https://client-s.gateway.messenger.live.com/v1/threads/4323A0b5463022fd0d43b4916cf5c6492c3412%40thread.skype/members
 	path := fmt.Sprintf("%s/v1/threads/%s/members", c.LoginInfo.LocationHost, conversationId)
-	fmt.Println(path)
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
@@ -546,11 +545,7 @@ func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 	}
 	data := members
 	params, _ := json.Marshal(data)
-	fmt.Println("params: ")
-	fmt.Println(members)
-	//return
 	body, err, _ := req.request("post", path, strings.NewReader(string(params)), nil, headers)
-	fmt.Println("CreateConversationGroup resp: ", body)
 	return
 }
 
@@ -567,10 +562,6 @@ func (c *Conn) RemoveMember(conversationId string, userId string) (err error) {
 		"BehaviorOverride":  "redirectAs404",
 	}
 	_, err, _ = req.request("delete", path, nil, nil, headers)
-	if err != nil {
-		fmt.Println("RemoveMember err: ", err)
-		return err
-	}
 	return
 }
 
