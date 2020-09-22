@@ -61,8 +61,9 @@ type Conversation struct {
 
 type ThreadProperties struct {
 	Topic       string `json:"topic"`
-	Lastjoinat  string `json:"lastjoinat"` // ? a timestamp ? example: "1421342788493"
-	Version     string `json:"version"`    //? a timestamp ? example: "1464029299838"
+	Lastjoinat  string `json:"lastjoinat"`  // ? a timestamp ? example: "1421342788493"
+	Lastleaveat string `json:"lastleaveat"` // ? a timestamp ? example: "1421342788493",a value in this field means that you have left the current session conversation
+	Version     string `json:"version"`     //? a timestamp ? example: "1464029299838"
 	Members     string `json:"members"`
 	Membercount string `json:"membercount"`
 }
@@ -319,15 +320,24 @@ type ConversationsClient struct {
 /**
 This returns an array of conversations that the current user has most recently interacted with
 */
-func (c *Conn) GetConversations(link string) (err error) {
+func (c *Conn) GetConversations(link string, totalCount int) (err error) {
 	//API_MSGSHOST
+	pageSize := 100
+	if totalCount > 0 {
+		if totalCount <= 100 {
+			pageSize = totalCount
+			totalCount = 0
+		} else {
+			totalCount = totalCount - pageSize
+		}
+	}
 	params := url.Values{}
 	if len(link) < 1 {
 		link = fmt.Sprintf("%s/v1/users/ME/conversations", c.LoginInfo.LocationHost)
 		params.Set("startTime", "0")
-		params.Set("view", "msnp24Equivalent")
+		params.Set("view", "supportsExtendedHistory|msnp24Equivalent")
 		params.Set("targetType", "Passport|Skype|Lync|Thread")
-		params.Set("pageSize", "20")
+		params.Set("pageSize", strconv.Itoa(pageSize))
 
 	}
 	req := Request{timeout: 30}
@@ -348,8 +358,12 @@ func (c *Conn) GetConversations(link string) (err error) {
 	json.Unmarshal([]byte(body), data)
 	c.ConversationsList = data
 	c.updateChats(data.Conversations)
-	if len(data.Metadata.BackwardLink) > 0 {
-		_ = c.GetConversations(data.Metadata.BackwardLink)
+	if totalCount > 0 {
+		_ = c.GetConversations(data.Metadata.BackwardLink, totalCount)
+	} else if totalCount < 0 {
+		if len(data.Metadata.BackwardLink) > 0 {
+			_ = c.GetConversations(data.Metadata.BackwardLink, totalCount)
+		}
 	}
 	return
 }
@@ -545,7 +559,7 @@ func (c *Conn) AddMember(members Members, conversationId string) (err error) {
 	}
 	data := members
 	params, _ := json.Marshal(data)
-	body, err, _ := req.request("post", path, strings.NewReader(string(params)), nil, headers)
+	_, err, _ = req.request("post", path, strings.NewReader(string(params)), nil, headers)
 	return
 }
 
