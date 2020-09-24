@@ -23,6 +23,7 @@ type Conn struct {
 	ConversationsList *ConversationsList
 	*MessageClient
 	*ContactClient
+	CreateChan chan string
 }
 
 /**
@@ -59,6 +60,7 @@ func NewConn() (cli *Conn, err error) {
 		Store:      newStore(),
 		ContactClient: &ContactClient{},
 		MessageClient: &MessageClient{},
+		CreateChan: nil,
 	}
 	return c, nil
 }

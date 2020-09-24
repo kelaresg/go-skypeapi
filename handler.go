@@ -312,6 +312,9 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 		t, _ := time.Parse(time.RFC3339, message.Time)
 		message.Resource.Jid = ConversationLinkArr[1]
 		message.Resource.Timestamp = t.Unix()
+		c.CreateChan = make(chan string, 1)
+		c.CreateChan <- message.Resource.Jid
+		close(c.CreateChan)
 		fmt.Println()
 		fmt.Println("ThreadUpdate")
 		fmt.Println()

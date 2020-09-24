@@ -223,11 +223,18 @@ func (Re *Resource) ParseLocation() (locationMessage *LocationMessageContent, er
 	return locationMessage, nil
 }
 
-type XmlContent struct {
-	Deletemember xml.Name `xml:"deletemember"`
-	Eventtime    string   `xml:"eventtime"`
+type XmlDeleteMember struct {
+	DeleteMember xml.Name `xml:"deletemember"`
+	EventTime    string   `xml:"eventtime"`
 	Initiator    string   `xml:"initiator"`
-	Target       string   `xml:"target"`
+	Targets       []string `xml:"target"`
+}
+
+type XmlAddMember struct {
+	AddMember xml.Name `xml:"addmember"`
+	EventTime string   `xml:"eventtime"`
+	Initiator string   `xml:"initiator"`
+	Targets    []string `xml:"target"`
 }
 
 func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMessage *MediaMessageContent, err error) {
