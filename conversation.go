@@ -113,35 +113,38 @@ type ShareLink struct {
 }
 
 type Resource struct {
-	ConversationLink      string      `json:"conversationLink"`
-	Type                  string      `json:"type"`
-	EventId               string      `json:"eventId"`
-	From                  string      `json:"from"`
-	ClientMessageId       string      `json:"clientmessageid"`
-	SkypeEditedId         string      `json:"skypeeditedid"`
-	Version               interface{} `json:"version"` // string|number
-	MessageType           string      `json:"messagetype"`
-	CounterPartyMessageId string      `json:"counterpartymessageid"`
-	ImDisplayName         string      `json:"imdisplayname"`
-	Content               string      `json:"content"`
-	ComposeTime           string      `json:"composetime"`
-	OriginContextId       string      `json:"origincontextid"`
-	OriginalArrivalTime   string      `json:"originalarrivaltime"`
-	AckRequired           string      `json:"ackrequired"`
-	ContentType           string      `json:"contenttype"`
-	IsVideoCall           string      `json:"isVideoCall"` // "FALSE|TRUE"
-	IsActive              bool        `json:"isactive"`
-	ThreadTopic           string      `json:"threadtopic"`
-	ContentFormat         string      `json:"contentformat"`
-	Id                    string      `json:"id"`
-	Jid                   string      `json:"jid"`       // conversation id(custom filed)
-	SendId                string      `json:"sendid"`    // send id id(custom filed)
-	Timestamp             int64       `json:"timestamp"` // custom filed
+	ConversationLink      string        `json:"conversationLink"`
+	Type                  string        `json:"type"`
+	EventId               string        `json:"eventId"`
+	From                  string        `json:"from"`
+	ClientMessageId       string        `json:"clientmessageid"`
+	SkypeEditedId         string        `json:"skypeeditedid"`
+	Version               interface{}   `json:"version"` // string|number
+	MessageType           string        `json:"messagetype"`
+	CounterPartyMessageId string        `json:"counterpartymessageid"`
+	ImDisplayName         string        `json:"imdisplayname"`
+	Content               string        `json:"content"`
+	ComposeTime           string        `json:"composetime"`
+	OriginContextId       string        `json:"origincontextid"`
+	OriginalArrivalTime   string        `json:"originalarrivaltime"`
+	AckRequired           string        `json:"ackrequired"`
+	ContentType           string        `json:"contenttype"`
+	IsVideoCall           string        `json:"isVideoCall"` // "FALSE|TRUE"
+	IsActive              bool          `json:"isactive"`
+	ThreadTopic           string        `json:"threadtopic"`
+	ContentFormat         string        `json:"contentformat"`
+	ETag                  string        `json:"eTag"`
+	Members               []interface{} `json:"members"`
+	Id                    string        `json:"id"`
+	Jid                   string        `json:"jid"`       // conversation id(custom filed)
+	SendId                string        `json:"sendid"`    // send id id(custom filed)
+	Timestamp             int64         `json:"timestamp"` // custom filed
 	UserPresence
 	EndpointPresence
 	AmsReferences []string `json:"amsreferences"`
 	Properties    struct {
-		UrlPreviews string `json:"urlpreviews"`
+		UrlPreviews  string   `json:"urlpreviews"`
+		Capabilities []string `json:"capabilities"`
 	} `json:"properties"`
 }
 

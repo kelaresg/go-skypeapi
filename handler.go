@@ -302,19 +302,28 @@ func (c *Conn) handleWithCustomHandlers(message Conversation, handlers []Handler
 			fmt.Println()
 		}
 	} else if message.ResourceType == "ThreadUpdate" {
-		//resource := Resource{}
-		//_ = json.Unmarshal([]byte(message.Resource), &resource)
-		//resource, ok := (message.Resource).(Resource)
-		//if !ok {
-		//	return
-		//}
 		ConversationLinkArr := strings.Split(message.ResourceLink, "/threads/")
 		t, _ := time.Parse(time.RFC3339, message.Time)
 		message.Resource.Jid = ConversationLinkArr[1]
 		message.Resource.Timestamp = t.Unix()
-		c.CreateChan = make(chan string, 1)
-		c.CreateChan <- message.Resource.Jid
-		close(c.CreateChan)
+		if len(message.Resource.ETag) > 0 && len(message.Resource.Properties.Capabilities) < 1{
+			// leave group
+			for _, h := range handlers {
+				if x, ok := h.(ChatUpdateHandler); ok {
+					if c.shouldCallSynchronously(h) {
+						x.HandleChatUpdate(message.Resource)
+					} else {
+						go x.HandleChatUpdate(message.Resource)
+					}
+				}
+			}
+		} else {
+			// create group
+			c.CreateChan = make(chan string, 1)
+			c.CreateChan <- message.Resource.Jid
+			close(c.CreateChan)
+		}
+
 		fmt.Println()
 		fmt.Println("ThreadUpdate")
 		fmt.Println()
