@@ -17,7 +17,7 @@ func main() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	_, err  = cli.Login(username, pwd)
+	err  = cli.Login(username, pwd)
 	//c := skype.Conn{}
 
 	//testUserId := "8:"+cli.UserProfile.Username

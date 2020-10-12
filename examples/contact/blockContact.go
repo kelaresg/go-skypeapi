@@ -20,7 +20,7 @@ func main2() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	_, err  = cli.Login(username, pwd)
+	err  = cli.Login(username, pwd)
 	//c := skype.ContactClient{}
 
 	fmt.Printf("\ne.g:live:****** block/unblock")

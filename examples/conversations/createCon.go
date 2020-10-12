@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func main7() {
+func main() {
 	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
@@ -17,7 +17,7 @@ func main7() {
 	skype.GetConfigYaml()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	_, err  = cli.Login(username, pwd)
+	err  = cli.Login(username, pwd)
 	//c := skype.Conn{}
 
 	userId := cli.UserProfile.Username
@@ -47,13 +47,13 @@ func main7() {
 	}
 	cli.CreateConversationGroup(Members)
 
-	Members = skype.Members{}
-	for _, memberId := range inputArr {
-		Members.Members = append(Members.Members, skype.Member{
-			Id: "8:"+memberId,
-			Role: "Admin",
-		})
-	}
-	cli.AddMember(Members, "")
+	//Members = skype.Members{}
+	//for _, memberId := range inputArr {
+	//	Members.Members = append(Members.Members, skype.Member{
+	//		Id: "8:"+memberId,
+	//		Role: "Admin",
+	//	})
+	//}
+	//cli.AddMember(Members, "")
 	fmt.Println("-----------------------------end-------------------------------")
 }

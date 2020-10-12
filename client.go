@@ -6,16 +6,19 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gogf/gf/encoding/gurl"
+	"io"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 type Conn struct {
 	loggedIn          bool //has logged in or not
 	session           *Session
+	sessionLock       uint32
 	Store             *Store
 	handler           []Handler
 	LoginInfo         *Session
@@ -68,25 +71,35 @@ func NewConn() (cli *Conn, err error) {
 /**
 login Skype by web auth
 */
-func (c *Conn) Login(username, password string) (session Session, err error) {
+func (c *Conn) Login(username, password string) (err error) {
+	//Makes sure that only a single Login or Restore can happen at the same time
+	if !atomic.CompareAndSwapUint32(&c.sessionLock, 0, 1) {
+		return errors.New("login or restore already running")
+	}
+	defer atomic.StoreUint32(&c.sessionLock, 0)
+
+	if c.loggedIn {
+		return errors.New("already logged in")
+	}
+
 	err = c.GetTokeBySOAP(username, password)
 	if err != nil {
-		return Session{}, err
+		return err
 	}
 
 	//获得用户SkypeRegistrationTokenProvider
 	c.LoginInfo.LocationHost = API_MSGSHOST
 	err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
 	if err != nil {
-		return Session{}, errors.New("SkypeRegistrationTokenProvider get error")
+		return errors.New("SkypeRegistrationTokenProvider get error")
 	}
 
 	//请求获得用户的id （类型  string）
 	err = c.GetUserId(c.LoginInfo.SkypeToken)
 	if err != nil {
-		return Session{}, errors.New("GetUserId get error")
+		return errors.New("GetUserId get error")
 	}
-	return *c.LoginInfo, nil
+	return
 }
 
 // Because the login policy of skype changes,
@@ -160,6 +173,9 @@ func (c *Conn) GetTokeBySOAP(username, password string) error {
 		return errors.New("get token err: parse EnvelopeXML err")
 	}
 	if envelopeResult.Body.Collection.Response.ReSeToken.BinarySecurityToken == "" {
+		if envelopeResult.Fault.FaultCode == "wsse:FailedAuthentication" {
+			return errors.New("Please confirm that your account password is entered correctly ")
+		}
 		return errors.New("get token err: can not find BinarySecurityToken: \n" + body)
 	}
 
@@ -192,10 +208,16 @@ type EnvelopeXML struct {
 	XMLName  xml.Name `xml:"Envelope"` // 指定最外层的标签为config
 	Header string `xml:"Header"` // 读取smtpServer配置项，并将结果保存到SmtpServer变量中
 	Body EnvelopeBody `xml:"Body"` // 读取receivers标签下的内容，以结构方式获取
+	Fault EnvelopeFault `xml:"Fault"`
 }
 
 type EnvelopeBody struct {
 	Collection RequestSecurityTokenResponseCollection `xml:"RequestSecurityTokenResponseCollection"`
+}
+
+type EnvelopeFault struct {
+	FaultCode string `xml:"faultcode"`
+	FaultString string `xml:"faultstring"`
 }
 
 type RequestSecurityTokenResponseCollection struct {
@@ -261,7 +283,7 @@ func (c *Conn) GetUserId(skypetoken string) (err error) {
 		.SkypeApiExce`ption: if the login form can't be processed
  * Value used for the `ConnInfo` header of the request for the registration token.
 */
-func (c *Conn) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
+func (c *Conn) SkypeRegistrationTokenProvider(skypeToken string) (err error) {
 	secs := strconv.Itoa(int(time.Now().Unix()))
 	lockAndKeyResponse := getMac256Hash(secs)
 	LockAndKey := "appId=" + SKYPEWEB_LOCKANDKEY_APPID + "; time=" + secs + "; lockAndKeyResponse=" + lockAndKeyResponse
@@ -269,7 +291,7 @@ func (c *Conn) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
 		timeout: 30,
 	}
 	header := map[string]string{
-		"Authentication":   "skypetoken=" + skypetoken,
+		"Authentication":   "skypetoken=" + skypeToken,
 		"LockAndKey":       LockAndKey,
 		"BehaviorOverride": "redirectAs404",
 	}
@@ -278,6 +300,9 @@ func (c *Conn) SkypeRegistrationTokenProvider(skypetoken string) (err error) {
 	}
 	params, _ := json.Marshal(data)
 	registrationTokenStr, location, err := req.HttpPostRegistrationToken(c.LoginInfo.LocationHost+"/v1/users/"+DEFAULT_USER+"/endpoints", string(params), header)
+	if err != nil {
+		return
+	}
 	locationArr := strings.Split(location, "/v1")
 	c.storeInfo(registrationTokenStr, c.LoginInfo.LocationHost)
 	if locationArr[0] != c.LoginInfo.LocationHost {
@@ -317,6 +342,7 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 	c.LoginInfo.LocationHost = locationHost
 	c.LoginInfo.RegistrationToken = registrationToken
 	c.LoginInfo.RegistrationExpires = registrationExpires
+	c.loggedIn = true
 	if strings.Index(registrationTokenStr, "endpointId=") == -1 {
 		registrationTokenStr = registrationTokenStr + "; endpointId=" + c.LoginInfo.EndpointId
 	} else {
@@ -358,7 +384,6 @@ func (c *Conn) Subscribes() {
 ids []8:xxxxxx
  */
 func (c *Conn) SubscribeUsers(ids []string) {
-	fmt.Println("SubscribeUsers ids", ids)
 	if len(ids) < 1 {
 		return
 	}
@@ -379,10 +404,6 @@ func (c *Conn) SubscribeUsers(ids []string) {
 		subStr := "/v1/users/ME/contacts/" + id
 		data["interestedResources"] = append(data["interestedResources"], subStr)
 	}
-
-	fmt.Println()
-	fmt.Println()
-	fmt.Printf("SubscribeUsers data %+v", data)
 
 	header := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
@@ -549,4 +570,19 @@ func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
 	}
 	//发送账号密码  判定是否存在次账号
 	return MSPRequ, MSPOK, ppftStr, nil
+}
+
+func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (body string, err error, status int)  {
+	body, err, status = req.request(method, reqUrl, reqBody, cookies, header)
+	fmt.Println("request StatusCode:", status)
+	if status == 401 {
+		// skypetoken is invalid
+		// TODO refresh skypetoken and more
+		c.loggedIn = false
+
+	} else if status == 404 || status == 729 {
+		// refresh registrationtoken
+		c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+	}
+	return
 }

@@ -15,7 +15,7 @@ func main4() {
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	//_, _, _ = cli.LoginApiAuth("zhaosl@shinetechchina.com", "zsl630235")
-	_, err  = cli.Login(username, pwd)
+	err  = cli.Login(username, pwd)
 	userId := cli.UserProfile.Username
 
 	//contant := skype.ContactClient{}

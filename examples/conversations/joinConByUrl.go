@@ -24,7 +24,7 @@ func main5() {
 	skype.GetConfigYamlForBuildExample()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
-	_, err  = cli.Login(username, pwd)
+	err  = cli.Login(username, pwd)
 	//c := skype.Conn{}
 
 	fmt.Printf("\niuput url and enter to join:")

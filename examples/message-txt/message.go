@@ -15,7 +15,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	_, err = cli.Login(username, pwd)
+	err = cli.Login(username, pwd)
 
 	//c := skype.ConversationsClient{}
 	cli.GetConversations("", 100)

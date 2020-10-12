@@ -23,4 +23,5 @@ func main() {
 	fmt.Printf("LocationHost : %+v\n", cli.LoginInfo.LocationHost)
 	fmt.Printf("UserId : %+v\n", cli.UserProfile.Username)
 	fmt.Printf("RegistrationTokenStr : %+v\n", cli.LoginInfo.RegistrationTokenStr)
+	err  = cli.Login(username, pwd)
 }
