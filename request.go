@@ -317,7 +317,7 @@ func (req *Request) HttpPostWithParamAndDataWithIdt(path string, params url.Valu
 	return
 }
 
-func (req *Request) HttpPostRegistrationToken(path string, data string, header map[string]string) (registrationtoken, location string, err error) {
+func (req *Request) HttpPostRegistrationToken(path string, data string, header map[string]string) (registrationToken, location string, err error) {
 	//获得  resgistration token 信息
 	resp, err := req.requestReturnResponse("POST", path, strings.NewReader(data), nil, header)
 	if err != nil {
@@ -326,10 +326,9 @@ func (req *Request) HttpPostRegistrationToken(path string, data string, header m
 	defer resp.Body.Close()
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
-	registrationtoken = resp.Header.Get("Set-Registrationtoken")
+	registrationToken = resp.Header.Get("Set-Registrationtoken")
 	location = resp.Header.Get("Location")
 	return
 }

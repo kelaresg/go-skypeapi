@@ -173,8 +173,6 @@ func (c *Conn) ContactList(id string) (err error) {
 	if err != nil {
 		return err
 	}
-	//fmt.Println()
-	//fmt.Println("contacts list", body)
 	list := ContactsList{}
 	json.Unmarshal([]byte(body), &list)
 	c.updateContacts(list.Contacts)

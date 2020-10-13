@@ -16,7 +16,7 @@ import (
 )
 
 type Conn struct {
-	loggedIn          bool //has logged in or not
+	LoggedIn          bool //has logged in or not
 	session           *Session
 	sessionLock       uint32
 	Store             *Store
@@ -58,7 +58,7 @@ type UserProfile struct {
 func NewConn() (cli *Conn, err error) {
 	c := &Conn{
 		handler:    make([]Handler, 0),
-		loggedIn: false,
+		LoggedIn: false,
 		session:  nil,
 		Store:      newStore(),
 		ContactClient: &ContactClient{},
@@ -78,7 +78,7 @@ func (c *Conn) Login(username, password string) (err error) {
 	}
 	defer atomic.StoreUint32(&c.sessionLock, 0)
 
-	if c.loggedIn {
+	if c.LoggedIn {
 		return errors.New("already logged in")
 	}
 
@@ -342,7 +342,7 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 	c.LoginInfo.LocationHost = locationHost
 	c.LoginInfo.RegistrationToken = registrationToken
 	c.LoginInfo.RegistrationExpires = registrationExpires
-	c.loggedIn = true
+	c.LoggedIn = true
 	if strings.Index(registrationTokenStr, "endpointId=") == -1 {
 		registrationTokenStr = registrationTokenStr + "; endpointId=" + c.LoginInfo.EndpointId
 	} else {
@@ -422,11 +422,10 @@ func (c *Conn) Poll() {
 		timeout: 60,
 	}
 
-	fmt.Println()
-	fmt.Println("The message listener is ready")
-	fmt.Println()
-
-	for i := 0; i <= 1000; i++ {
+	for {
+		if c.LoggedIn == false {
+			break
+		}
 		pollPath := c.PollPath()
 		header := map[string]string{
 			"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
@@ -437,7 +436,10 @@ func (c *Conn) Poll() {
 			"endpointFeatures": "Agent",
 		}
 		params, _ := json.Marshal(data)
-		body, err, _ := req.request("post", pollPath, strings.NewReader(string(params)), nil, header)
+		body, err, _ := c.request(req, "post", pollPath, strings.NewReader(string(params)), nil, header)
+		if c.LoggedIn == false {
+			break
+		}
 		if err != nil {
 			fmt.Println("poller err: ", err)
 		}
@@ -578,7 +580,7 @@ func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Rea
 	if status == 401 {
 		// skypetoken is invalid
 		// TODO refresh skypetoken and more
-		c.loggedIn = false
+		c.LoggedIn = false
 
 	} else if status == 404 || status == 729 {
 		// refresh registrationtoken
