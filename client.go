@@ -29,11 +29,6 @@ type Conn struct {
 	CreateChan chan string
 }
 
-/**
-{"about":null,"avatarUrl":null,"birthday":null,"city":null,"country":null,"emails":["zhaosl@shinetechchina.com"],
-"firstname":"lyle","gender":"0","homepage":null,"jobtitle":null,"language":null,"lastname":"zhao","mood":null,
-"phoneHome":null,"phoneMobile":null,"phoneOffice":null,"province":null,"richMood":null,"username":"live:zhaosl_4"}
-*/
 type UserProfile struct {
 	About       string   `json:"about"`
 	AvatarUrl   string   `json:"avatarUrl"`
@@ -68,6 +63,10 @@ func NewConn() (cli *Conn, err error) {
 	return c, nil
 }
 
+func (c *Conn) IsLoginInProgress() bool {
+	return c.sessionLock == 1
+}
+
 /**
 login Skype by web auth
 */
@@ -79,7 +78,11 @@ func (c *Conn) Login(username, password string) (err error) {
 	defer atomic.StoreUint32(&c.sessionLock, 0)
 
 	if c.LoggedIn {
-		return errors.New("already logged in")
+		username := c.UserProfile.FirstName
+		if len(c.UserProfile.LastName) > 0 {
+			username = username + c.UserProfile.LastName
+		}
+		return errors.New("You are already logged in as @" + username)
 	}
 
 	err = c.GetTokeBySOAP(username, password)
@@ -251,8 +254,6 @@ type EdgeResp struct {
 获得用户的id
 */
 func (c *Conn) GetUserId(skypetoken string) (err error) {
-	//params := url.Values{}
-	//params.Set("auth", skypetoken)
 	req := Request{
 		timeout: 30,
 	}
