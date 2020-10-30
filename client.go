@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gogf/gf/encoding/gurl"
 	"io"
 	"net/url"
@@ -85,7 +86,12 @@ func (c *Conn) Login(username, password string) (err error) {
 		return errors.New("You are already logged in as @" + username)
 	}
 
-	err = c.GetTokeBySOAP(username, password)
+	if strings.Index(username, "@") > -1{
+		err = c.GetTokeBySOAP(username, password)
+	} else {
+		err = c.GetTokeByAuthLive(username, password)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -114,10 +120,23 @@ func (c *Conn) GetTokeByAuthLive(username, password string) error {
 	}
 
 	//1. send username password
-	_, err, tValue := c.sendCred(username, password, MSPRequ, MSPOK, PPFT)
+	paramsMap := url.Values{}
+	paramsMap.Set("wa", "wsignin1.0")
+	paramsMap.Set("wp", "MBI_SSL")
+	paramsMap.Set("wreply", "https://lw.skype.com/login/oauth/proxy?client_id=578134&site_name=lw.skype.com&redirect_uri=https%3A%2F%2Fweb.skype.com%2F")
+
+	cookies := map[string]string{
+		"MSPRequ": MSPRequ,
+		"MSPOK":   MSPOK,
+		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
+	}
+	opid, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
 	if err != nil {
 		return errors.New("sendCred get error")
 	}
+	cookies["CkTst"] = strconv.Itoa(time.Now().Second() * 1000)
+	tValue, err := c.sendOpid(paramsMap, PPFT, opid, cookies)
+	fmt.Println(tValue)
 	if tValue == "" {
 		return errors.New("Logig failed, Can not find 't' value")
 	}
@@ -506,7 +525,7 @@ func (c *Conn) getToken(t string) (err error) {
 	return
 }
 
-func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
+func (c *Conn) sendCred1(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
 	paramsMap := url.Values{}
 	paramsMap.Set("wa", "wsignin1.0")
 	paramsMap.Set("wp", "MBI_SSL")
@@ -523,11 +542,83 @@ func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string
 	formParams.Add("login", username)
 	formParams.Add("passwd", pwd)
 	formParams.Add("PPFT", PPFT)
+	formParams.Add("loginoptions", "3")
 
 	query, _ := json.Marshal(formParams)
-	fmt.Println()
 	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), paramsMap, string(query), cookies, "t")
 	return
+}
+
+func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, err error) {
+	req := Request{
+		timeout: 30,
+	}
+
+	formParams := url.Values{}
+	formParams.Add("login", username)
+	formParams.Add("passwd", password)
+	formParams.Add("PPFT", PPFT)
+	formParams.Add("loginoptions", "3")
+
+	formData, _ := json.Marshal(formParams)
+	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
+	body, err, _ := req.request("POST", reqUrl, strings.NewReader(string(formData)), cookies, nil)
+	if err != nil {
+		return
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return
+	}
+	doc.Find("form").Each(func(_ int, s *goquery.Selection) {
+		nameValue, _ := s.Attr("name")
+		actionValue, _ := s.Attr("action")
+		if nameValue == "fmHF" {
+			uslArr := strings.Split("?", actionValue)
+			err = errors.New(fmt.Sprintf("Account action required (%s), login with a web browser first", uslArr[0]))
+			return
+		}
+	})
+
+	r := regexp.MustCompile(`opid=([A-Z0-9]+)`)
+	res := find(body, r)
+	opid = res[0][1]
+	return
+}
+
+func (c *Conn) sendOpid(paramsMap url.Values, opid, PPFT string, cookies map[string]string) (t string, err error) {
+	req := Request{
+		timeout: 30,
+	}
+	formParams := url.Values{}
+	formParams.Add("opid", opid)
+	formParams.Add("site_name", "lw.skype.com")
+	formParams.Add("oauthPartner", "999")
+	formParams.Add("client_id", "578134")
+	formParams.Add("redirect_uri", "https://web.skype.com")
+	formParams.Add("PPFT", PPFT)
+	formParams.Add("type", "28")
+
+	formData, _ := json.Marshal(formParams)
+	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
+	body, err, _ := req.request("POST", reqUrl, strings.NewReader(string(formData)), cookies, nil)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return
+	}
+	doc.Find("input").Each(func(_ int, s *goquery.Selection) {
+		idt, _ := s.Attr("id")
+		if idt == "t" {
+			t, _ = s.Attr("value")
+		}
+	})
+	return
+}
+
+func find(htm string, re *regexp.Regexp) [][]string {
+	imgs := re.FindAllStringSubmatch(htm, -1)
+	return imgs
 }
 
 func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
@@ -585,7 +676,7 @@ func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Rea
 
 	} else if status == 404 || status == 729 {
 		// refresh registrationtoken
-		c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+		_ = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
 	}
 	return
 }
