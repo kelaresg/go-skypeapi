@@ -587,7 +587,7 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 	return
 }
 
-func (c *Conn) sendOpid(paramsMap url.Values, opid, PPFT string, cookies map[string]string) (t string, err error) {
+func (c *Conn) sendOpid(paramsMap url.Values, PPFT, opid string, cookies map[string]string) (t string, err error) {
 	req := Request{
 		timeout: 30,
 	}
