@@ -86,12 +86,12 @@ func (c *Conn) Login(username, password string) (err error) {
 		return errors.New("You are already logged in as @" + username)
 	}
 
-	if strings.Index(username, "@") > -1{
-		err = c.GetTokeBySOAP(username, password)
-	} else {
+	//if strings.Index(username, "@") > -1{
+	//	err = c.GetTokeBySOAP(username, password)
+	//} else {
 		err = c.GetTokeByAuthLive(username, password)
-	}
-
+	//}
+	return
 	if err != nil {
 		return err
 	}
@@ -128,15 +128,26 @@ func (c *Conn) GetTokeByAuthLive(username, password string) error {
 	cookies := map[string]string{
 		"MSPRequ": MSPRequ,
 		"MSPOK":   MSPOK,
-		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
+		"CkTst":   "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000),
 	}
-	opid, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
+	//opid, err, _:= c.sendCred(username, password, MSPRequ, MSPOK, PPFT)
+	opid, err := c.sendCred1(paramsMap, username, password, PPFT, cookies)
+	//return nil
+	//opid, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
 	if err != nil {
 		return errors.New("sendCred get error")
 	}
 	cookies["CkTst"] = strconv.Itoa(time.Now().Second() * 1000)
-	tValue, err := c.sendOpid(paramsMap, PPFT, opid, cookies)
+	tValue, err := c.sendOpid(paramsMap, PPFT, opid, cookies, username, password)
+	//tValue := ""
+	fmt.Println()
+	fmt.Println(opid)
+	fmt.Println(paramsMap)
+	fmt.Println(password)
 	fmt.Println(tValue)
+	fmt.Println("MSPRequ", MSPRequ)
+	fmt.Println("MSPOK", MSPOK)
+	fmt.Println("PPFT", PPFT)
 	if tValue == "" {
 		return errors.New("Logig failed, Can not find 't' value")
 	}
@@ -525,7 +536,7 @@ func (c *Conn) getToken(t string) (err error) {
 	return
 }
 
-func (c *Conn) sendCred1(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
+func (c *Conn) sendCred(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
 	paramsMap := url.Values{}
 	paramsMap.Set("wa", "wsignin1.0")
 	paramsMap.Set("wp", "MBI_SSL")
@@ -536,20 +547,20 @@ func (c *Conn) sendCred1(username, pwd, MSPRequ, MSPOK, PPFT string) (body strin
 	cookies := map[string]string{
 		"MSPRequ": MSPRequ,
 		"MSPOK":   MSPOK,
-		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
+		"CkTst":   "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000),
 	}
 	formParams := url.Values{}
 	formParams.Add("login", username)
 	formParams.Add("passwd", pwd)
 	formParams.Add("PPFT", PPFT)
-	formParams.Add("loginoptions", "3")
+	//formParams.Add("loginoptions", "3")
 
 	query, _ := json.Marshal(formParams)
 	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), paramsMap, string(query), cookies, "t")
 	return
 }
 
-func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, err error) {
+func (c *Conn) sendCred1(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, err error) {
 	req := Request{
 		timeout: 30,
 	}
@@ -559,7 +570,7 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 	formParams.Add("passwd", password)
 	formParams.Add("PPFT", PPFT)
 	formParams.Add("loginoptions", "3")
-
+	//cookies["CkTst"] =  "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000)
 	formData, _ := json.Marshal(formParams)
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
 	body, err, _ := req.request("POST", reqUrl, strings.NewReader(string(formData)), cookies, nil)
@@ -587,11 +598,13 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 	return
 }
 
-func (c *Conn) sendOpid(paramsMap url.Values, PPFT, opid string, cookies map[string]string) (t string, err error) {
+func (c *Conn) sendOpid(paramsMap url.Values, PPFT, opid string, cookies map[string]string, username, password string) (t string, err error) {
 	req := Request{
 		timeout: 30,
 	}
 	formParams := url.Values{}
+	formParams.Add("login", username)
+	formParams.Add("passwd", password)
 	formParams.Add("opid", opid)
 	formParams.Add("site_name", "lw.skype.com")
 	formParams.Add("oauthPartner", "999")

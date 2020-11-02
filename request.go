@@ -68,6 +68,7 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 			req1.Header.Set(cK, cV)
 		}
 	}
+
 	response, err = client.Do(req1)
 	if err != nil {
 		fmt.Println(err)
@@ -88,18 +89,21 @@ func (req *Request) request(method string, reqUrl string, reqBody io.Reader, coo
 	content, err := ioutil.ReadAll(resp.Body)
 	//fmt.Println(" request body", resp.Request)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println()
+		fmt.Println("request:", err)
+		fmt.Println()
 		return
 	}
+	fmt.Println("request resp.StatusCode:", resp.StatusCode)
 	if resp.StatusCode == 302 {
 		location := resp.Header.Get("Location")
 		body = location
 	} else {
 		body = string(content)
-		//fmt.Printf("%s", resp.Header)
-		fmt.Println(resp.Header)
+		fmt.Println()
+		fmt.Println("request response body:", body)
+		fmt.Println()
 	}
-	//
 	status = resp.StatusCode
 	return
 }
@@ -136,11 +140,6 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 		return
 	}
 	defaultDomain := u["host"]
-	//获得每次登录的信息  然后通过token 请求 skype 的官方接口
-	sign, dateTime, err := req.getAuthorization()
-	if err != nil {
-		return
-	}
 	//默认超时
 	if req.timeout == 0 {
 		req.timeout = 10
@@ -162,9 +161,7 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 	req1.Header.Set("Accept", "*/*")
 	req1.Header.Set("Accept-Charset", "utf-8;")
 	req1.Header.Set("Host", defaultDomain)
-	req1.Header.Set("X-Date", dateTime)
 	req1.Header.Set("Content-Type", "application/html")
-	req1.Header.Set("Authorization", sign)
 	req1.Header.Set("User-Agent", agent)
 
 	//add other cookie
@@ -191,22 +188,21 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 	}
 	//判断是否跳转
 	defer resp.Body.Close()
-	r = resp.Body
-	if id != "" && selector != "" {
-		doc, err := goquery.NewDocumentFromReader(resp.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		doc.Find(selector).Each(func(_ int, s *goquery.Selection) {
-			idt, _ := s.Attr("id")
-			if idt == id {
-				tValue, _ = s.Attr("value")
-			}
-
-		})
-	}
+	//r = resp.Body
+	//if id != "" && selector != "" {
+	//	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	doc.Find(selector).Each(func(_ int, s *goquery.Selection) {
+	//		idt, _ := s.Attr("id")
+	//		if idt == id {
+	//			tValue, _ = s.Attr("value")
+	//		}
+	//
+	//	})
+	//}
 	content, err := ioutil.ReadAll(resp.Body)
-
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -217,6 +213,9 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 		body = location
 	} else {
 		body = string(content)
+		fmt.Println()
+		fmt.Println("response body2123213:", body)
+		fmt.Println()
 	}
 	return
 }
