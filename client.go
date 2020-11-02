@@ -570,7 +570,7 @@ func (c *Conn) sendCred1(paramsMap url.Values, username, password, PPFT string, 
 	formParams.Add("passwd", password)
 	formParams.Add("PPFT", PPFT)
 	formParams.Add("loginoptions", "3")
-	//cookies["CkTst"] =  "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000)
+	cookies["CkTst"] =  "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000)
 	formData, _ := json.Marshal(formParams)
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
 	body, err, _ := req.request("POST", reqUrl, strings.NewReader(string(formData)), cookies, nil)
