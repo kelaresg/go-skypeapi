@@ -72,6 +72,12 @@ func (c *Conn) IsLoginInProgress() bool {
 login Skype by web auth
 */
 func (c *Conn) Login(username, password string) (err error) {
+	if username == "" {
+		return errors.New("username is required")
+	}
+	if password == "" {
+		return errors.New("password is required")
+	}
 	//Makes sure that only a single Login or Restore can happen at the same time
 	if !atomic.CompareAndSwapUint32(&c.sessionLock, 0, 1) {
 		return errors.New("login or restore already running")
@@ -103,6 +109,8 @@ func (c *Conn) Login(username, password string) (err error) {
 		return errors.New("SkypeRegistrationTokenProvider get error")
 	}
 
+	c.LoginInfo.Username = username
+	c.LoginInfo.Password = password
 	//请求获得用户的id （类型  string）
 	err = c.GetUserId(c.LoginInfo.SkypeToken)
 	if err != nil {
@@ -128,7 +136,7 @@ func (c *Conn) GetTokeByAuthLive(username, password string) error {
 	cookies := map[string]string{
 		"MSPRequ": MSPRequ,
 		"MSPOK":   MSPOK,
-		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
+		"CkTst":   "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000),
 	}
 	opid, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
 	if err != nil {
@@ -138,13 +146,13 @@ func (c *Conn) GetTokeByAuthLive(username, password string) error {
 	tValue, err := c.sendOpid(paramsMap, PPFT, opid, cookies)
 	fmt.Println(tValue)
 	if tValue == "" {
-		return errors.New("Logig failed, Can not find 't' value")
+		return errors.New("login failed, can not find 't' value")
 	}
 
 	//2. get token and RegistrationExpires
 	err = c.getToken(tValue)
 	if err != nil {
-		return errors.New("Get token error ")
+		return errors.New("get token error")
 	}
 	return nil
 }
@@ -304,6 +312,9 @@ func (c *Conn) GetUserId(skypetoken string) (err error) {
  * Value used for the `ConnInfo` header of the request for the registration token.
 */
 func (c *Conn) SkypeRegistrationTokenProvider(skypeToken string) (err error) {
+	if skypeToken == "" {
+		return errors.New("skype token not exist")
+	}
 	secs := strconv.Itoa(int(time.Now().Unix()))
 	lockAndKeyResponse := getMac256Hash(secs)
 	LockAndKey := "appId=" + SKYPEWEB_LOCKANDKEY_APPID + "; time=" + secs + "; lockAndKeyResponse=" + lockAndKeyResponse
@@ -443,6 +454,10 @@ func (c *Conn) Poll() {
 	}
 
 	for {
+		if c.LoginInfo.LocationHost == "" || c.LoginInfo.EndpointId == "" ||
+			c.LoginInfo.SkypeToken == "" || c.LoginInfo.RegistrationExpires == "" {
+			c.LoggedIn = false
+		}
 		if c.LoggedIn == false {
 			break
 		}
@@ -456,21 +471,36 @@ func (c *Conn) Poll() {
 			"endpointFeatures": "Agent",
 		}
 		params, _ := json.Marshal(data)
-		body, err, _ := c.request(req, "post", pollPath, strings.NewReader(string(params)), nil, header)
-		if c.LoggedIn == false {
-			break
-		}
-		if err != nil {
-			fmt.Println("poller err: ", err)
+		body, err, statusCode := c.request(req, "POST", pollPath, strings.NewReader(string(params)), nil, header)
+		fmt.Println("poller err: ", err)
+		if statusCode == 0 {
+			if err != nil {
+				if strings.Index(err.Error(), "Client.Timeout exceeded while awaiting headers") < 0 {
+					c.LoggedIn = false
+					break
+				}
+			} else {
+				c.LoggedIn = false
+				break
+			}
 		}
 		fmt.Println("poller body: ", body)
 		if body != "" {
 			var bodyContent struct {
 				EventMessages []Conversation `json:"eventMessages"`
+				ErrorCode int `json:"errorCode"`
 			}
 			err = json.Unmarshal([]byte(body), &bodyContent)
 			if err != nil {
 				fmt.Println("json.Unmarshal poller body err: ", err)
+			}
+			if bodyContent.ErrorCode == 729 || bodyContent.ErrorCode == 450 {
+				fmt.Println("poller bodyContent.ErrorCode: ", bodyContent.ErrorCode)
+				err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+				if err != nil {
+					fmt.Println("poller SkypeRegistrationTokenProvider: ", err)
+					continue
+				}
 			}
 			if len(bodyContent.EventMessages) > 0 {
 				for _, message := range bodyContent.EventMessages {
@@ -494,7 +524,6 @@ func (c *Conn) SubscribePath() (path string) {
 }
 
 func (c *Conn) getToken(t string) (err error) {
-
 	// # Now pass the login credentials over.
 	paramsMap := url.Values{}
 	paramsMap.Set("client_id", "578134")
@@ -670,13 +699,46 @@ func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Rea
 	body, err, status = req.request(method, reqUrl, reqBody, cookies, header)
 	fmt.Println("request StatusCode:", status)
 	if status == 401 {
-		// skypetoken is invalid
-		// TODO refresh skypetoken and more
-		c.LoggedIn = false
+		if c.LoggedIn {
+			c.LoggedIn = false
+			// skypetoken is invalid
+			// use username and password login again
+			_ = c.reLoginWithSubscribes()
+		}
+	} else if status == 404 {
+		// need refresh registrationtoken
+		if c.LoggedIn {
+			err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+			if err != nil {
+				c.LoggedIn = false
+				fmt.Println("request step in:", err.Error())
+				// use username and password login again
+				_ = c.reLoginWithSubscribes()
+			}
+		}
+	}
+	return
+}
 
-	} else if status == 404 || status == 729 {
-		// refresh registrationtoken
-		_ = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+func (c *Conn) reLoginWithSubscribes() (err error)  {
+	err = c.Login(c.LoginInfo.Username, c.LoginInfo.Password)
+	if err != nil {
+		fmt.Println("request reLogin err:", err.Error())
+	} else {
+		c.LoggedIn = true
+		c.Subscribes() // subscribe basic event
+		err = c.ContactList(c.UserProfile.Username)
+		if err == nil{
+			var userIds []string
+			for _, contact := range c.Store.Contacts {
+				if strings.Index(contact.PersonId, "28:") > -1 {
+					continue
+				}
+				userId := strings.Replace(contact.PersonId, "@s.skype.net", "", 1)
+				userIds = append(userIds, userId)
+			}
+			c.SubscribeUsers(userIds)
+		}
 	}
 	return
 }
