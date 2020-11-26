@@ -456,6 +456,7 @@ func (c *Conn) Poll() {
 	for {
 		if c.LoginInfo.LocationHost == "" || c.LoginInfo.EndpointId == "" ||
 			c.LoginInfo.SkypeToken == "" || c.LoginInfo.RegistrationExpires == "" {
+			fmt.Printf("(Poll) 1 LoggedIn false: %+v", c.LoginInfo)
 			c.LoggedIn = false
 		}
 		if c.LoggedIn == false {
@@ -475,11 +476,14 @@ func (c *Conn) Poll() {
 		fmt.Println("poller err: ", err)
 		if statusCode == 0 {
 			if err != nil {
-				if strings.Index(err.Error(), "Client.Timeout exceeded while awaiting headers") < 0 {
+				if strings.Index(err.Error(), "Client.Timeout exceeded while awaiting headers") < 0 &&
+					strings.Index(err.Error(), "i/o timeout") < 0 {
 					c.LoggedIn = false
+					fmt.Printf("(Poll) 2 LoggedIn false: %+v", err)
 					break
 				}
 			} else {
+				fmt.Println("(Poll) 3 LoggedIn false:")
 				c.LoggedIn = false
 				break
 			}
@@ -700,6 +704,7 @@ func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Rea
 	fmt.Println("request StatusCode:", status)
 	if status == 401 {
 		if c.LoggedIn {
+			fmt.Println("(request) 1 LoggedIn false:")
 			c.LoggedIn = false
 			// skypetoken is invalid
 			// use username and password login again
@@ -710,8 +715,8 @@ func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Rea
 		if c.LoggedIn {
 			err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
 			if err != nil {
+				fmt.Printf("(request) 2 LoggedIn false: %+v", err.Error())
 				c.LoggedIn = false
-				fmt.Println("request step in:", err.Error())
 				// use username and password login again
 				_ = c.reLoginWithSubscribes()
 			}
