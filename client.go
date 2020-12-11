@@ -121,7 +121,7 @@ func (c *Conn) Login(username, password string) (err error) {
 
 // Because the login policy of skype changes,
 // this method of obtaining token does not currently work
-func (c *Conn) GetTokeByAuthLive(username, password string) error {
+func (c *Conn) GetTokeByAuthLive(username, password string) (err error) {
 	MSPRequ, MSPOK, PPFT, err := c.getParams()
 	if MSPOK == "" || MSPRequ == "" || PPFT == "" || err != nil {
 		return errors.New("params get error")
@@ -129,32 +129,32 @@ func (c *Conn) GetTokeByAuthLive(username, password string) error {
 
 	//1. send username password
 	paramsMap := url.Values{}
-	paramsMap.Set("wa", "wsignin1.0")
 	paramsMap.Set("wp", "MBI_SSL")
 	paramsMap.Set("wreply", "https://lw.skype.com/login/oauth/proxy?client_id=578134&site_name=lw.skype.com&redirect_uri=https%3A%2F%2Fweb.skype.com%2F")
+	paramsMap.Set("wa", "wsignin1.0")
 
 	cookies := map[string]string{
 		"MSPRequ": MSPRequ,
+		"CkTst":  "G" + strconv.Itoa(int(time.Now().UnixNano())/1000000),
 		"MSPOK":   MSPOK,
-		"CkTst":   "G" + API_MSACC + strconv.Itoa(time.Now().Second() * 1000),
 	}
-	opid, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
+	opid, t, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
 	if err != nil {
-		return errors.New("sendCred get error")
+		return
 	}
-	cookies["CkTst"] = strconv.Itoa(time.Now().Second() * 1000)
-	tValue, err := c.sendOpid(paramsMap, PPFT, opid, cookies)
-	fmt.Println(tValue)
-	if tValue == "" {
-		return errors.New("login failed, can not find 't' value")
+	if t == "" {
+		cookies["CkTst"] = strconv.Itoa(int(time.Now().UnixNano() / 1000000))
+		t, _ = c.sendOpid(paramsMap, PPFT, opid, cookies)
+		if t == "" {
+			return errors.New("login failed, can not find 't' value")
+		}
 	}
-
 	//2. get token and RegistrationExpires
-	err = c.getToken(tValue)
+	err = c.getToken(t)
 	if err != nil {
 		return errors.New("get token error")
 	}
-	return nil
+	return
 }
 
 func (c *Conn) GetTokeBySOAP(username, password string) error {
@@ -477,7 +477,8 @@ func (c *Conn) Poll() {
 		if statusCode == 0 {
 			if err != nil {
 				if strings.Index(err.Error(), "Client.Timeout exceeded while awaiting headers") < 0 &&
-					strings.Index(err.Error(), "i/o timeout") < 0 {
+					strings.Index(err.Error(), "i/o timeout") < 0 &&
+					strings.Index(err.Error(), "EOF") < 0{ // TODO "EOF" ?
 					c.LoggedIn = false
 					fmt.Printf("(Poll) 2 LoggedIn false: %+v", err)
 					break
@@ -500,7 +501,7 @@ func (c *Conn) Poll() {
 			}
 			if bodyContent.ErrorCode == 729 || bodyContent.ErrorCode == 450 {
 				fmt.Println("poller bodyContent.ErrorCode: ", bodyContent.ErrorCode)
-				err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+				// err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
 				if err != nil {
 					fmt.Println("poller SkypeRegistrationTokenProvider: ", err)
 					continue
@@ -536,15 +537,14 @@ func (c *Conn) getToken(t string) (err error) {
 	req := Request{
 		timeout: 30,
 	}
-	data := map[string]interface{}{
-		"t":            t,
-		"client_id":    "578134",
-		"oauthPartner": "999",
-		"site_name":    "lw.skype.com",
-		"redirect_uri": "https://web.skype.com",
+	formData := url.Values{
+		"t":            {t},
+		"client_id":    {"578134"},
+		"oauthPartner": {"999"},
+		"site_name":    {"lw.skype.com"},
+		"redirect_uri": {"https://web.skype.com"},
 	}
-	query, _ := json.Marshal(data)
-	_, err, _, token, expires := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(paramsMap)), string(query))
+	_, err, _, token, expires := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(paramsMap)), strings.NewReader(formData.Encode()))
 	c.LoginInfo = &Session{
 		SkypeToken:   token,
 		SkypeExpires: expires,
@@ -582,20 +582,20 @@ func (c *Conn) sendCred1(username, pwd, MSPRequ, MSPOK, PPFT string) (body strin
 	return
 }
 
-func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, err error) {
+func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, t string, err error) {
 	req := Request{
 		timeout: 30,
 	}
 
-	formParams := url.Values{}
-	formParams.Add("login", username)
-	formParams.Add("passwd", password)
-	formParams.Add("PPFT", PPFT)
-	formParams.Add("loginoptions", "3")
+	formData := url.Values{
+		"login":        {username},
+		"passwd":       {password},
+		"PPFT":         {PPFT},
+		"loginoptions": {"3"},
+	}
 
-	formData, _ := json.Marshal(formParams)
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
-	body, err, _ := req.request("POST", reqUrl, strings.NewReader(string(formData)), cookies, nil)
+	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, nil)
 	if err != nil {
 		return
 	}
@@ -605,18 +605,39 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 		return
 	}
 	doc.Find("form").Each(func(_ int, s *goquery.Selection) {
+		doc.Find("input").Each(func(_ int, s *goquery.Selection) {
+			idt, _ := s.Attr("id")
+			if idt == "t" {
+				t, _ = s.Attr("value")
+				return
+			}
+		})
+		if t != "" {
+			return
+		}
 		nameValue, _ := s.Attr("name")
 		actionValue, _ := s.Attr("action")
 		if nameValue == "fmHF" {
-			uslArr := strings.Split("?", actionValue)
+			uslArr := strings.Split(actionValue,"?")
 			err = errors.New(fmt.Sprintf("Account action required (%s), login with a web browser first", uslArr[0]))
 			return
 		}
 	})
+	if  t != "" {
+		return "", t, err
+	}
+	if err != nil {
+		fmt.Println(err.Error())
+		return "", "", err
+	}
 
 	r := regexp.MustCompile(`opid=([A-Z0-9]+)`)
 	res := find(body, r)
-	opid = res[0][1]
+	if len(res) > 0 {
+		if len(res[0]) > 1 {
+			opid = res[0][1]
+		}
+	}
 	return
 }
 
@@ -624,18 +645,17 @@ func (c *Conn) sendOpid(paramsMap url.Values, PPFT, opid string, cookies map[str
 	req := Request{
 		timeout: 30,
 	}
-	formParams := url.Values{}
-	formParams.Add("opid", opid)
-	formParams.Add("site_name", "lw.skype.com")
-	formParams.Add("oauthPartner", "999")
-	formParams.Add("client_id", "578134")
-	formParams.Add("redirect_uri", "https://web.skype.com")
-	formParams.Add("PPFT", PPFT)
-	formParams.Add("type", "28")
-
-	formData, _ := json.Marshal(formParams)
+	formData := url.Values{
+		"opid":         {opid},
+		"site_name":    {"lw.skype.com"},
+		"oauthPartner": {"999"},
+		"client_id":    {"578134"},
+		"redirect_uri": {"https://web.skype.com"},
+		"PPFT":         {PPFT},
+		"type":         {"28"},
+	}
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
-	body, err, _ := req.request("POST", reqUrl, strings.NewReader(string(formData)), cookies, nil)
+	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, nil)
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return
@@ -662,7 +682,6 @@ func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
 		timeout: 30,
 	}
 	//第一步, 302重定向跳转
-	//fmt.Println(fmt.Sprintf("%s/oauth/microsoft", API_LOGIN))
 	redirectUrl, err, _ := req.HttpGetJson(fmt.Sprintf("%s/oauth/microsoft", API_LOGIN), params)
 	//请求跳转的链接
 	if err != nil {

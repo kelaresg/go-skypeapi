@@ -56,18 +56,33 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 	agent := "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36"
 	//add commom header
 	req1.Header.Set("Accept", "*/*")
-	req1.Header.Set("Accept-Charset", "utf-8;")
 	req1.Header.Set("Host", defaultDomain)
-	req1.Header.Set("Content-Type", "application/json")
+	req1.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req1.Header.Set("User-Agent", agent)
 	for k, v := range header {
 		req1.Header.Set(k, v)
 	}
-	if len(cookies) > 0 {
-		for cK, cV := range cookies {
-			req1.Header.Set(cK, cV)
+	if strings.Index(reqUrl, "ppsecure/post") > -1 {
+		// add other cookie
+		MaxAge := time.Hour * 24 / time.Second
+		if len(cookies) > 0 {
+			var newCookies []*http.Cookie
+			jar, _ := cookiejar.New(nil)
+			for cK, cV := range cookies {
+				newCookies = append(newCookies, &http.Cookie{
+					Name:     cK,
+					Value:    cV,
+					Path:     "/",
+					Domain:   defaultDomain,
+					MaxAge:   int(MaxAge),
+					HttpOnly: false,
+				})
+			}
+			jar.SetCookies(req1.URL, newCookies)
+			client.Jar = jar
 		}
 	}
+
 	response, err = client.Do(req1)
 	if err != nil {
 		fmt.Println(err)
@@ -86,7 +101,6 @@ func (req *Request) request(method string, reqUrl string, reqBody io.Reader, coo
 	}
 	defer resp.Body.Close()
 	content, err := ioutil.ReadAll(resp.Body)
-	//fmt.Println(" request body", resp.Request)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -96,10 +110,8 @@ func (req *Request) request(method string, reqUrl string, reqBody io.Reader, coo
 		body = location
 	} else {
 		body = string(content)
-		//fmt.Printf("%s", resp.Header)
 		fmt.Println(resp.Header)
 	}
-	//
 	status = resp.StatusCode
 	return
 }
@@ -278,8 +290,8 @@ func (req *Request) HttpGetJson(path string, params url.Values) (body string, er
 	return
 }
 
-func (req *Request) HttpPostBase(path string, params string) (body string, err error, http_code int, skype_token, expires_in string) {
-	body, err, http_code, skype_token, expires_in = req.requestWithLogininfo("POST", path, strings.NewReader(params))
+func (req *Request) HttpPostBase(path string, reqBody io.Reader) (body string, err error, http_code int, skype_token, expires_in string) {
+	body, err, http_code, skype_token, expires_in = req.requestWithLogininfo("POST", path, reqBody)
 	return
 }
 
