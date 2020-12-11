@@ -544,7 +544,10 @@ func (c *Conn) getToken(t string) (err error) {
 		"site_name":    {"lw.skype.com"},
 		"redirect_uri": {"https://web.skype.com"},
 	}
-	_, err, _, token, expires := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(paramsMap)), strings.NewReader(formData.Encode()))
+	header := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+	_, err, _, token, expires := req.HttpPostBase(fmt.Sprintf("%s/microsoft?%s", API_LOGIN, gurl.BuildQuery(paramsMap)), strings.NewReader(formData.Encode()), header)
 	c.LoginInfo = &Session{
 		SkypeToken:   token,
 		SkypeExpires: expires,
@@ -593,9 +596,11 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 		"PPFT":         {PPFT},
 		"loginoptions": {"3"},
 	}
-
+	header := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
-	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, nil)
+	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, header)
 	if err != nil {
 		return
 	}
@@ -655,7 +660,10 @@ func (c *Conn) sendOpid(paramsMap url.Values, PPFT, opid string, cookies map[str
 		"type":         {"28"},
 	}
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
-	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, nil)
+	header := map[string]string{
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, header)
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return

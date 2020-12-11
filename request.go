@@ -57,7 +57,7 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 	//add commom header
 	req1.Header.Set("Accept", "*/*")
 	req1.Header.Set("Host", defaultDomain)
-	req1.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req1.Header.Set("Content-Type", "application/json")
 	req1.Header.Set("User-Agent", agent)
 	for k, v := range header {
 		req1.Header.Set(k, v)
@@ -236,8 +236,8 @@ func (req *Request) requestWithCookiesReturnIdValue(method string, reqUrl string
 /**
 底层的请求封装
 */
-func (req *Request) requestWithLogininfo(method string, reqUrl string, reqBody io.Reader) (body string, err error, status int, skypetken, expires_in string) {
-	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, nil, nil)
+func (req *Request) requestWithLogininfo(method string, reqUrl string, reqBody io.Reader, header map[string]string) (body string, err error, status int, skypetken, expires_in string) {
+	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, nil, header)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -290,8 +290,8 @@ func (req *Request) HttpGetJson(path string, params url.Values) (body string, er
 	return
 }
 
-func (req *Request) HttpPostBase(path string, reqBody io.Reader) (body string, err error, http_code int, skype_token, expires_in string) {
-	body, err, http_code, skype_token, expires_in = req.requestWithLogininfo("POST", path, reqBody)
+func (req *Request) HttpPostBase(path string, reqBody io.Reader, header map[string]string) (body string, err error, http_code int, skype_token, expires_in string) {
+	body, err, http_code, skype_token, expires_in = req.requestWithLogininfo("POST", path, reqBody, header)
 	return
 }
 
