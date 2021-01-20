@@ -36,6 +36,7 @@ type MessageClient struct {
 type SendMessage struct {
 	Jid string //receiver id(conversation id)
 	ClientMessageId string
+	SkypeEditedId string
 	Timestamp int64
 	Type string
 	*SendTextMessage
@@ -63,10 +64,13 @@ func (c *Conn) SendText(chatThreadId string, content *SendMessage) (err error) {
 	}
 	data := map[string]interface{}{
 		"contenttype":     "text",
-		"clientmessageid": content.ClientMessageId, // A large integer (~20 digits)
-		//"composetime":     time.Now().Format(time.RFC3339),
 		"messagetype":     "RichText",
 		"content":         content.Content,
+	}
+	if len(content.SkypeEditedId) > 0 {
+		data["skypeeditedid"] = content.SkypeEditedId
+	} else {
+		data["clientmessageid"] = content.ClientMessageId // A large integer (~20 digits)
 	}
 	params, _ := json.Marshal(data)
 	body, err := req.HttpPostWitHeaderAndCookiesJson(surl, nil, string(params), nil, headers)
