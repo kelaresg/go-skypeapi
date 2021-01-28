@@ -395,12 +395,13 @@ func (c *Conn) Subscribes() {
 	data := map[string]interface{}{
 		"interestedResources": []string{
 			"/v1/threads/ALL",
-			"/v1/users/ME/contacts/ALL",
+			//"/v1/users/ME/contacts/ALL",
 			"/v1/users/ME/conversations/ALL/messages",
 			"/v1/users/ME/conversations/ALL/properties",
 		},
-		"template":    "raw",
+		//"template":    "raw",
 		"channelType": "httpLongPoll",
+		"conversationType": 2047,
 	}
 	header := map[string]string{
 		"Authentication":    "skypetoken=" + c.LoginInfo.SkypeToken,
@@ -423,18 +424,28 @@ func (c *Conn) SubscribeUsers(ids []string) {
 	req := Request{
 		timeout: 60,
 	}
-	subscribePath := c.SubscribePath() + "/0?name=interestedResources"
-	data := map[string][]string{
-		"interestedResources": {
-			"/v1/threads/ALL",
-			//"/v1/users/ME/contacts/ALL",
-			"/v1/users/ME/conversations/ALL/messages",
-			"/v1/users/ME/conversations/ALL/properties",
-		},
+	
+	type aData struct {
+		ChannelType string `json:"channelType"`
+		ConversationType int `json:"conversationType"`
+		InterestedResources []string `json:"interestedResources"`
+	}
+	
+	//subscribePath := c.SubscribePath() + "/0?name=interestedResources"
+	subscribePath := c.SubscribePath()
+	data := aData{
+		ChannelType: "httpLongPoll",
+		ConversationType: 2047,
+	}
+	data.InterestedResources = []string{
+		"/v1/threads/ALL",
+		//"/v1/users/ME/contacts/ALL",
+		"/v1/users/ME/conversations/ALL/messages",
+		"/v1/users/ME/conversations/ALL/properties",
 	}
 	for _, id := range ids {
 		subStr := "/v1/users/ME/contacts/" + id
-		data["interestedResources"] = append(data["interestedResources"], subStr)
+		data.InterestedResources = append(data.InterestedResources, subStr)
 	}
 
 	header := map[string]string{
@@ -443,7 +454,7 @@ func (c *Conn) SubscribeUsers(ids []string) {
 		"BehaviorOverride":  "redirectAs404",
 	}
 	params, _ := json.Marshal(data)
-	_, err, _ := req.request("PUT", subscribePath, strings.NewReader(string(params)), nil, header)
+	_, err, _ := req.request("POST", subscribePath, strings.NewReader(string(params)), nil, header)
 	if err != nil {
 		fmt.Println("SubscribeUsers request err: ", err)
 	}
@@ -735,19 +746,20 @@ func (c *Conn) reLoginWithSubscribes() (err error)  {
 		fmt.Println("request reLogin err:", err.Error())
 	} else {
 		c.LoggedIn = true
-		c.Subscribes() // subscribe basic event
 		err = c.ContactList(c.UserProfile.Username)
-		if err == nil{
-			var userIds []string
-			for _, contact := range c.Store.Contacts {
-				if strings.Index(contact.PersonId, "28:") > -1 {
-					continue
-				}
-				userId := strings.Replace(contact.PersonId, "@s.skype.net", "", 1)
-				userIds = append(userIds, userId)
-			}
-			c.SubscribeUsers(userIds)
-		}
+		c.DoSubscribe()
 	}
 	return
+}
+
+func (c *Conn) DoSubscribe() {
+	var userIds []string
+	for _, contact := range c.Store.Contacts {
+		if strings.Index(contact.PersonId, "28:") > -1 {
+			continue
+		}
+		userId := strings.Replace(contact.PersonId, "@s.skype.net", "", 1)
+		userIds = append(userIds, userId)
+	}
+	c.SubscribeUsers(userIds)
 }

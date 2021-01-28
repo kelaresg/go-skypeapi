@@ -1,14 +1,19 @@
 package skype
 
+import "sync"
+
 type Store struct {
-	Contacts map[string]Contact
-	Chats    map[string]Conversation
+	Contacts        map[string]Contact
+	InvitesContacts map[string]Contact
+	InvitesContactsLock sync.Mutex
+	Chats           map[string]Conversation
 }
 
 func newStore() *Store {
 	return &Store{
-		make(map[string]Contact),
-		make(map[string]Conversation),
+		Contacts:        make(map[string]Contact),
+		InvitesContacts: make(map[string]Contact),
+		Chats:           make(map[string]Conversation),
 	}
 }
 

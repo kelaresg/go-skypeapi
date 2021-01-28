@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/encoding/gurl"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type Presence string
@@ -102,6 +103,7 @@ type Contact struct {
 	CreationTime        string                      `json:"creation_time"`
 	Agent               Agent                       `json:"agent"`
 	RelationshipHistory UserInfoRelationshipHistory `json:"relationship_history"`
+	IsRequest           bool
 }
 
 type UserInfoProfile struct {
@@ -479,4 +481,96 @@ func (c *Conn)GetContactsCurrentStatus(ids []string) (content *ContactsStatusRes
 	}
 	fmt.Println("GetContactsCurrentStatus resp: ", body)
 	return content, nil
+}
+
+type InvitesResponse struct {
+	InviteList []InviteItem `json:"invite_list"`
+}
+
+type InviteItem struct {
+	Mri string `json:"mri"` // 8:****
+	AvatarUrl string `json:"avatar_url"`
+	Displayname string `json:"displayname"`
+	Invites []Invite `json:"invites"`
+}
+
+type Invite struct {
+	Message string `json:"message"`
+	Time string `json:"time"` // format like "2021-01-26T07:28:33Z"
+}
+
+// GetInvites: retrieves any pending contact requests. A user may have multiple requests open.
+func (c *Conn) GetInvites() {
+	for {
+		fmt.Println("GetInvites")
+		if c.LoginInfo.LocationHost == "" || c.LoginInfo.EndpointId == "" ||
+			c.LoginInfo.SkypeToken == "" || c.LoginInfo.RegistrationExpires == "" {
+			fmt.Printf("(GetInvites) 1 LoggedIn false: %+v", c.LoginInfo)
+			c.LoggedIn = false
+		}
+		if c.LoggedIn == false {
+			break
+		}
+		path := fmt.Sprintf("%s/users/self/invites", API_CONTACTS)
+		req := Request{timeout: 30}
+		headers := map[string]string{
+			"X-Skypetoken":     c.LoginInfo.SkypeToken,
+		}
+
+		body, err, _ := c.request(req, "GET", path, nil, nil, headers)
+		if err != nil {
+			fmt.Println("GetInvites err: ", err)
+		}
+		content := &InvitesResponse{}
+		err = json.Unmarshal([]byte(body), content)
+		fmt.Println("GetInvites content", content)
+		var contacts = make([]Contact, len(content.InviteList))
+		for _, item := range content.InviteList {
+			if contact, ok := c.Store.Contacts[item.Mri + "@s.skype.net"]; ok {
+				if contact.IsRequest {
+					return
+				}
+			}
+			contacts = append(contacts, Contact{
+				Mri: item.Mri,
+				PersonId: item.Mri,
+				DisplayName: item.Displayname,
+				Profile: UserInfoProfile{
+					AvatarUrl: item.AvatarUrl,
+				},
+				IsRequest: true,
+			})
+		}
+		c.Store.InvitesContactsLock.Lock()
+		for _, contact := range contacts {
+			contact.PersonId = contact.PersonId + "@s.skype.net"
+			c.Store.InvitesContacts[contact.PersonId] = contact
+		}
+		c.Store.InvitesContactsLock.Unlock()
+		fmt.Println("GetInvites Contacts", c.Store.Contacts)
+		fmt.Println("GetInvites InvitesContacts", c.Store.InvitesContacts)
+		time.Sleep(20 * time.Second)
+	}
+}
+
+// AcceptInvite: Accepts an open contact request, authorising this user to send and receive messages, or declines it.
+// @params
+//  otherId: thread identifier of requesting user
+//	action: "accept"|"decline"
+func (c *Conn) AcceptInvite(otherId string, action string) {
+		fmt.Println("AcceptInvite")
+		path := fmt.Sprintf("%s/users/self/invites/%s/%s", API_CONTACTS, otherId, action)
+		req := Request{timeout: 30}
+		headers := map[string]string{
+			"X-Skypetoken":     c.LoginInfo.SkypeToken,
+		}
+
+		body, err, _ := c.request(req, "PUT", path, nil, nil, headers)
+		if err != nil {
+			fmt.Println("AcceptInvite err: ", err)
+		}
+		fmt.Println("AcceptInvite body", body)
+		//content := &InvitesResponse{}
+		//err = json.Unmarshal([]byte(body), content)
+		//fmt.Println("AcceptInvite content", content)
 }
