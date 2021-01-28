@@ -3,6 +3,7 @@ package skype
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"github.com/gogf/gf/encoding/gurl"
 
@@ -331,6 +332,9 @@ type ConversationsClient struct {
 This returns an array of conversations that the current user has most recently interacted with
 */
 func (c *Conn) GetConversations(link string, totalCount int) (err error) {
+	if c.LoginInfo == nil {
+		return errors.New("loginInfo is nil")
+	}
 	//API_MSGSHOST
 	pageSize := 100
 	if totalCount > 0 {

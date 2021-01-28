@@ -119,8 +119,6 @@ func (c *Conn) Login(username, password string) (err error) {
 	return
 }
 
-// Because the login policy of skype changes,
-// this method of obtaining token does not currently work
 func (c *Conn) GetTokeByAuthLive(username, password string) (err error) {
 	MSPRequ, MSPOK, PPFT, err := c.getParams()
 	if MSPOK == "" || MSPRequ == "" || PPFT == "" || err != nil {
@@ -331,6 +329,9 @@ func (c *Conn) SkypeRegistrationTokenProvider(skypeToken string) (err error) {
 	}
 	params, _ := json.Marshal(data)
 	registrationTokenStr, location, err := req.HttpPostRegistrationToken(c.LoginInfo.LocationHost+"/v1/users/"+DEFAULT_USER+"/endpoints", string(params), header)
+	if len(location) < 1 {
+		err = errors.New("didn't get location")
+	}
 	if err != nil {
 		return
 	}
@@ -382,6 +383,9 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 	return
 }
 
+// Subscribes will subscribe to events.
+// Events provide real-time information for messages sent and received in conversations,
+// as well as endpoint and presence changes
 func (c *Conn) Subscribes() {
 	req := Request{
 		timeout: 60,
@@ -404,16 +408,13 @@ func (c *Conn) Subscribes() {
 		"BehaviorOverride":  "redirectAs404",
 	}
 	params, _ := json.Marshal(data)
-	_, err, _ := req.request("post", subscribePath, strings.NewReader(string(params)), nil, header)
+	_, err, _ := req.request("POST", subscribePath, strings.NewReader(string(params)), nil, header)
 	if err != nil {
 		fmt.Println("Subscribes request err: ", err)
 	}
 }
 
-/**
-@params
-ids []8:xxxxxx
- */
+// SubscribeUsers will subscribe to contacts events interested
 func (c *Conn) SubscribeUsers(ids []string) {
 	if len(ids) < 1 {
 		return
@@ -558,30 +559,6 @@ func (c *Conn) getToken(t string) (err error) {
 	if token == "" {
 		return errors.New("can't get token")
 	}
-	return
-}
-
-func (c *Conn) sendCred1(username, pwd, MSPRequ, MSPOK, PPFT string) (body string, err error, tValue string) {
-	paramsMap := url.Values{}
-	paramsMap.Set("wa", "wsignin1.0")
-	paramsMap.Set("wp", "MBI_SSL")
-	paramsMap.Set("wreply", "https://lw.skype.com/login/oauth/proxy?client_id=578134&site_name=lw.skype.com&redirect_uri=https%3A%2F%2Fweb.skype.com%2F")
-	req := Request{
-		timeout: 30,
-	}
-	cookies := map[string]string{
-		"MSPRequ": MSPRequ,
-		"MSPOK":   MSPOK,
-		"CkTst":   strconv.Itoa(time.Now().Second() * 1000),
-	}
-	formParams := url.Values{}
-	formParams.Add("login", username)
-	formParams.Add("passwd", pwd)
-	formParams.Add("PPFT", PPFT)
-	formParams.Add("loginoptions", "3")
-
-	query, _ := json.Marshal(formParams)
-	body, err, _, tValue = req.HttpPostWithParamAndDataWithIdt(fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), paramsMap, string(query), cookies, "t")
 	return
 }
 
