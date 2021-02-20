@@ -257,11 +257,11 @@ func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMess
 	case "RichText/UriObject":
 		mediaUrl = mediaMessage.Uri + "/views/imgpsh_mobile_save_anim"
 	case "RichText/Media_GenericFile":
-		mediaUrl = mediaMessage.Uri + "/views/original"
+		mediaUrl = strings.Replace(mediaMessage.Uri, "content/original", "views/original", 1)
 	case "RichText/Media_Video":
-		mediaUrl = mediaMessage.Uri + "/views/video"
+		mediaUrl = strings.Replace(mediaMessage.Uri, "content/original", "views/original", 1)
 	case "RichText/Media_AudioMsg":
-		mediaUrl = mediaMessage.Uri + "/views/audio"
+		mediaUrl = strings.Replace(mediaMessage.Uri, "content/audio", "views/audio", 1)
 	}
 
 	fmt.Println("content.A.Href", mediaMessage.Uri)

@@ -146,6 +146,12 @@ func (c *Conn) SendFile(chatThreadId string, content *SendMessage) (err error) {
 		if content.Type == "m.audio" {
 			messageType = "RichText/Media_AudioMsg"
 		}
+		if content.Type == "m.file" {
+			messageType = "RichText/Media_GenericFile"
+		}
+		if content.Type == "m.video" {
+			messageType = "RichText/Media_Video"
+		}
 
 		requestBody := map[string]interface{}{
 			"clientmessageid":    content.ClientMessageId,
