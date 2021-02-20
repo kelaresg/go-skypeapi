@@ -94,6 +94,9 @@ func (c *Conn) UploadFile(chatThreadId string, content *SendMessage) (fullUrl, f
 	} else if content.Type == "m.audio" {
 		meta["type"] = "sharing/audio"
 		objType = "audio"
+	} else if content.Type == "m.video" {
+		meta["type"] = "sharing/audio"
+		objType = "video"
 	} else if content.Type == "avatar/group" {
 		meta["type"] = "avatar/group"
 		objType = "avatar"
@@ -138,11 +141,11 @@ func (c *Conn) UploadFile(chatThreadId string, content *SendMessage) (fullUrl, f
 */
 func (c *Conn) SendFile(chatThreadId string, content *SendMessage) (err error) {
 	req := Request{timeout: 30}
-	fullUrl, fileId, code, err := c.UploadFile(chatThreadId, content)
+	_, fileId, code, err := c.UploadFile(chatThreadId, content)
 	messageType := "RichText/UriObject"
 	if code == 201 || code == 200 {
 		fmt.Println("message SendimageMsg1: ")
-		imageContent := MediaContentFormat(content.Type, content.FileName, content.FileSize, fullUrl, content.SendMediaMessage.Duration, fileId)
+		imageContent := MediaContentFormat(content.Type, content.FileName, content.FileSize, content.SendMediaMessage.Duration, fileId)
 		if content.Type == "m.audio" {
 			messageType = "RichText/Media_AudioMsg"
 		}
@@ -183,10 +186,10 @@ func (c *Conn) SendFile(chatThreadId string, content *SendMessage) (err error) {
 	return
 }
 
-func MediaContentFormat(fileType string, filename string, fileSize string, fullUrl string, durationMs int, bodyFileOneId string) string {
+func MediaContentFormat(fileType string, filename string, fileSize string, durationMs int, bodyFileOneId string) string {
 	var imageContent string
+	fullUrl := "https://api.asm.skype.com/v1/objects/" + bodyFileOneId
 	if fileType == "m.image" || fileType == "" {
-		fullUrl = "https://api.asm.skype.com/v1/objects/" + bodyFileOneId
 		viewLink_1 := fmt.Sprintf("https://api.asm.skype.com/s/i?%s", bodyFileOneId)
 		viewLink := fmt.Sprintf(`<a href="%s">%s</a>`, viewLink_1, viewLink_1)
 		values := map[string]string{
@@ -212,16 +215,23 @@ func MediaContentFormat(fileType string, filename string, fileSize string, fullU
 			"OriginalName": filename,
 			"FileSize":     fileSize,
 		}
+		thumbnail := ""
 		if fileType == "m.audio" {
 			//ffileTypeStr = "Audio.1/Message.1" // if need send audio message like skype
 			ffileTypeStr = "Audio.1"
+			thumbnail = fullUrl + "/views/audio"
+		} else if fileType == "m.file" {
+			thumbnail = fullUrl + "/views/original"
+		}  else if fileType == "m.video" {
+			thumbnail = fullUrl + "/views/thumbnail"
 		}
+
 		imageContent = UriObject(
 			viewLink,
 			ffileTypeStr,
 			bodyFileOneId,
 			fullUrl,
-			fmt.Sprintf("%s/views/thumbnail", fullUrl),
+			thumbnail,
 			filename,
 			filename,
 			durationMs,
