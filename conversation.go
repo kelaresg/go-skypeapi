@@ -253,17 +253,15 @@ func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMess
 	}
 
 	var mediaUrl string
-	mediaUrl = mediaMessage.UrlThumbnail
 	switch mediaType {
 	case "RichText/UriObject":
 		mediaUrl = mediaMessage.Uri + "/views/imgpsh_mobile_save_anim"
-	//case "RichText/Media_GenericFile":
-	//	mediaUrl = mediaMessage.UrlThumbnail
-	//	mediaUrl = strings.Replace(mediaMessage.Uri, "content/original", "views/original", 1)
-	//case "RichText/Media_Video":
-	//	mediaUrl = strings.Replace(mediaMessage.Uri, "content/video", "views/video", 1)
-	//case "RichText/Media_AudioMsg":
-	//	mediaUrl = strings.Replace(mediaMessage.Uri, "content/audio", "views/audio", 1)
+	case "RichText/Media_GenericFile":
+		mediaUrl = mediaMessage.Uri + "/views/original"
+	case "RichText/Media_Video":
+		mediaUrl = mediaMessage.Uri + "/views/video"
+	case "RichText/Media_AudioMsg":
+		mediaUrl = mediaMessage.Uri + "/views/audio"
 	}
 	fmt.Println("content.A.Href", mediaMessage.Uri)
 	fmt.Println("content.FileSize", mediaMessage.FileSize.V)

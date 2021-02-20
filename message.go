@@ -95,7 +95,7 @@ func (c *Conn) UploadFile(chatThreadId string, content *SendMessage) (fullUrl, f
 		meta["type"] = "sharing/audio"
 		objType = "audio"
 	} else if content.Type == "m.video" {
-		meta["type"] = "sharing/audio"
+		meta["type"] = "sharing/video"
 		objType = "video"
 	} else if content.Type == "avatar/group" {
 		meta["type"] = "avatar/group"
