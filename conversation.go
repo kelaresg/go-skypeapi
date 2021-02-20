@@ -1,6 +1,7 @@
 package skype
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -243,7 +244,10 @@ type XmlAddMember struct {
 
 func (Re *Resource) Download(ce *Conn, mediaType string) (data []byte, mediaMessage *MediaMessageContent, err error) {
 	mediaMessage = &MediaMessageContent{}
-	err = xml.Unmarshal([]byte(Re.Content), mediaMessage)
+	d := xml.NewDecoder(bytes.NewReader([]byte(Re.Content)))
+	d.Strict = false
+	err = d.Decode(mediaMessage)
+	//err = xml.Unmarshal([]byte(Re.Content), mediaMessage)
 	if err != nil {
 		return nil, nil, err
 	}

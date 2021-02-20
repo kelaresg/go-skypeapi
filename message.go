@@ -199,7 +199,7 @@ func MediaContentFormat(fileType string, filename string, fileSize string, fullU
 			values,
 		)
 	} else {
-		viewLink_1 := fmt.Sprintf("https://login.skype.com/login/sso?go=webclient.xmm&docid=%s", bodyFileOneId)
+		viewLink_1 := fmt.Sprintf("https://login.skype.com/login/sso?go=webclient.xmm&amp;docid=%s", bodyFileOneId)
 		viewLink := fmt.Sprintf(`<a href="%s">%s</a>`, viewLink_1, viewLink_1)
 		ffileTypeStr := "File.1"
 		values := map[string]string{
