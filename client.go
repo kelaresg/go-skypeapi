@@ -18,6 +18,7 @@ import (
 
 type Conn struct {
 	LoggedIn          bool //has logged in or not
+	Refresh           chan int // refresh LoginInfo/session
 	session           *Session
 	sessionLock       uint32
 	Store             *Store
@@ -53,13 +54,14 @@ type UserProfile struct {
 
 func NewConn() (cli *Conn, err error) {
 	c := &Conn{
-		handler:    make([]Handler, 0),
-		LoggedIn: false,
-		session:  nil,
-		Store:      newStore(),
+		handler:       make([]Handler, 0),
+		LoggedIn:      false,
+		Refresh:       nil,
+		session:       nil,
+		Store:         newStore(),
 		ContactClient: &ContactClient{},
 		MessageClient: &MessageClient{},
-		CreateChan: nil,
+		CreateChan:    nil,
 	}
 	return c, nil
 }
@@ -84,7 +86,7 @@ func (c *Conn) Login(username, password string) (err error) {
 	}
 	defer atomic.StoreUint32(&c.sessionLock, 0)
 
-	if c.LoggedIn {
+	if c.LoggedIn && c.UserProfile != nil {
 		username := c.UserProfile.FirstName
 		if len(c.UserProfile.LastName) > 0 {
 			username = username + c.UserProfile.LastName
@@ -337,12 +339,12 @@ func (c *Conn) SkypeRegistrationTokenProvider(skypeToken string) (err error) {
 	}
 	locationArr := strings.Split(location, "/v1")
 	c.storeInfo(registrationTokenStr, c.LoginInfo.LocationHost)
-	if locationArr[0] != c.LoginInfo.LocationHost {
+	//if locationArr[0] != c.LoginInfo.LocationHost {
 		newRegistrationToken, _, err := req.HttpPostRegistrationToken(location, string(params), header)
 		if err == nil {
 			c.storeInfo(newRegistrationToken, locationArr[0])
 		}
-	}
+	//}
 	return
 }
 
@@ -386,7 +388,7 @@ func (c *Conn) storeInfo(registrationTokenStr string, locationHost string) {
 // Subscribes will subscribe to events.
 // Events provide real-time information for messages sent and received in conversations,
 // as well as endpoint and presence changes
-func (c *Conn) Subscribes() {
+func (c *Conn) Subscribes() (err error) {
 	req := Request{
 		timeout: 60,
 	}
@@ -408,14 +410,15 @@ func (c *Conn) Subscribes() {
 		"BehaviorOverride":  "redirectAs404",
 	}
 	params, _ := json.Marshal(data)
-	_, err, _ := req.request("POST", subscribePath, strings.NewReader(string(params)), nil, header)
-	if err != nil {
-		fmt.Println("Subscribes request err: ", err)
-	}
+	_, err, _ = req.request("POST", subscribePath, strings.NewReader(string(params)), nil, header)
+	//if err != nil {
+	//	fmt.Println("Subscribes request err: ", err)
+	//}
+	return
 }
 
 // SubscribeUsers will subscribe to contacts events interested
-func (c *Conn) SubscribeUsers(ids []string) {
+func (c *Conn) SubscribeUsers(ids []string) (err error) {
 	if len(ids) < 1 {
 		return
 	}
@@ -443,22 +446,19 @@ func (c *Conn) SubscribeUsers(ids []string) {
 		"BehaviorOverride":  "redirectAs404",
 	}
 	params, _ := json.Marshal(data)
-	_, err, _ := req.request("PUT", subscribePath, strings.NewReader(string(params)), nil, header)
-	if err != nil {
-		fmt.Println("SubscribeUsers request err: ", err)
-	}
+	_, err, _ = req.request("PUT", subscribePath, strings.NewReader(string(params)), nil, header)
+	return
 }
 
 func (c *Conn) Poll() {
 	req := Request{
 		timeout: 60,
 	}
-
 	for {
 		if c.LoginInfo.LocationHost == "" || c.LoginInfo.EndpointId == "" ||
 			c.LoginInfo.SkypeToken == "" || c.LoginInfo.RegistrationExpires == "" {
 			fmt.Printf("(Poll) 1 LoggedIn false: %+v", c.LoginInfo)
-			c.LoggedIn = false
+			c.setLoggedInFalse()
 		}
 		if c.LoggedIn == false {
 			break
@@ -473,23 +473,8 @@ func (c *Conn) Poll() {
 			"endpointFeatures": "Agent",
 		}
 		params, _ := json.Marshal(data)
-		body, err, statusCode := c.request(req, "POST", pollPath, strings.NewReader(string(params)), nil, header)
+		body, err, _ := c.request(req, "POST", pollPath, strings.NewReader(string(params)), nil, header)
 		fmt.Println("poller err: ", err)
-		if statusCode == 0 {
-			if err != nil {
-				if strings.Index(err.Error(), "Client.Timeout exceeded while awaiting headers") < 0 &&
-					strings.Index(err.Error(), "i/o timeout") < 0 &&
-					strings.Index(err.Error(), "EOF") < 0{ // TODO "EOF" ?
-					c.LoggedIn = false
-					fmt.Printf("(Poll) 2 LoggedIn false: %+v", err)
-					break
-				}
-			} else {
-				fmt.Println("(Poll) 3 LoggedIn false:")
-				c.LoggedIn = false
-				break
-			}
-		}
 		fmt.Println("poller body: ", body)
 		if body != "" {
 			var bodyContent struct {
@@ -500,14 +485,25 @@ func (c *Conn) Poll() {
 			if err != nil {
 				fmt.Println("json.Unmarshal poller body err: ", err)
 			}
-			if bodyContent.ErrorCode == 729 || bodyContent.ErrorCode == 450 {
-				fmt.Println("poller bodyContent.ErrorCode: ", bodyContent.ErrorCode)
-				// err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
-				if err != nil {
-					fmt.Println("poller SkypeRegistrationTokenProvider: ", err)
-					continue
-				}
+
+			if bodyContent.ErrorCode == 729 {
+				err = c.getSkypeRegTokenWithSubscribes()
+			} else if bodyContent.ErrorCode == 450 {
+				err = c.resubscribes()
 			}
+			if err != nil {
+				fmt.Println("poller 729/450 err: ", err)
+				continue
+			}
+
+			//if bodyContent.ErrorCode == 729 || bodyContent.ErrorCode == 450 {
+			//	fmt.Println("poller bodyContent.ErrorCode: ", bodyContent.ErrorCode)
+			//	// err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+			//	if err != nil {
+			//		fmt.Println("poller SkypeRegistrationTokenProvider: ", err)
+			//		continue
+			//	}
+			//}
 			if len(bodyContent.EventMessages) > 0 {
 				for _, message := range bodyContent.EventMessages {
 					if message.Type == "EventMessage" {
@@ -705,25 +701,52 @@ func (c *Conn) getParams() (MSPRequ, MSPOK, PPFT string, err error) {
 
 func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (body string, err error, status int)  {
 	body, err, status = req.request(method, reqUrl, reqBody, cookies, header)
-	fmt.Println("request StatusCode:", status)
+	fmt.Println("(request) StatusCode:", status, c.LoggedIn)
 	if status == 401 {
 		if c.LoggedIn {
-			fmt.Println("(request) 1 LoggedIn false:")
-			c.LoggedIn = false
 			// skypetoken is invalid
 			// use username and password login again
-			_ = c.reLoginWithSubscribes()
+			err = c.reLoginWithSubscribes()
 		}
 	} else if status == 404 {
 		// need refresh registrationtoken
 		if c.LoggedIn {
-			err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
-			if err != nil {
-				fmt.Printf("(request) 2 LoggedIn false: %+v", err.Error())
-				c.LoggedIn = false
-				// use username and password login again
-				_ = c.reLoginWithSubscribes()
+			err = c.getSkypeRegTokenWithSubscribes()
+		}
+	} else if status == 0 {
+		if err != nil {
+			maybeErrors := "Client.Timeout exceeded while awaiting headers" +
+				"i/o timeout" +
+				"EOF"
+			if !strings.ContainsAny(maybeErrors, err.Error()) { // TODO "EOF" ?
+				if strings.Index(err.Error(), "TLS handshake timeout") < 0 {
+					time.Sleep(time.Minute)
+				} else {
+					c.setLoggedInFalse()
+					fmt.Printf("(request) 0 err: %+v", err)
+				}
 			}
+		} else {
+			fmt.Println("(request) 0 err is nil")
+			c.setLoggedInFalse()
+		}
+	}
+	return
+}
+
+func (c *Conn) getSkypeRegTokenWithSubscribes() (err error) {
+	err = c.SkypeRegistrationTokenProvider(c.LoginInfo.SkypeToken)
+	if err != nil {
+		fmt.Println("(getSkypeRegTokenWithSubscribes) err: ", err.Error())
+		// use username and password login again
+		_ = c.reLoginWithSubscribes()
+	} else {
+		err = c.resubscribes()
+		if err != nil {
+			fmt.Println("(getSkypeRegTokenWithSubscribes) resubscribes err: ", err.Error())
+		}
+		if c.Refresh != nil {
+			c.Refresh <- 1
 		}
 	}
 	return
@@ -732,22 +755,44 @@ func (c *Conn) request(req Request, method string, reqUrl string, reqBody io.Rea
 func (c *Conn) reLoginWithSubscribes() (err error)  {
 	err = c.Login(c.LoginInfo.Username, c.LoginInfo.Password)
 	if err != nil {
-		fmt.Println("request reLogin err:", err.Error())
-	} else {
-		c.LoggedIn = true
-		c.Subscribes() // subscribe basic event
-		err = c.ContactList(c.UserProfile.Username)
-		if err == nil{
-			var userIds []string
-			for _, contact := range c.Store.Contacts {
-				if strings.Index(contact.PersonId, "28:") > -1 {
-					continue
-				}
-				userId := strings.Replace(contact.PersonId, "@s.skype.net", "", 1)
-				userIds = append(userIds, userId)
-			}
-			c.SubscribeUsers(userIds)
-		}
+		c.setLoggedInFalse()
+		return
+	}
+
+	c.LoggedIn = true
+	err = c.resubscribes()
+	if c.Refresh != nil {
+		c.Refresh <- 1
 	}
 	return
+}
+
+func (c *Conn) resubscribes() (err error) {
+	err = c.Subscribes() // subscribe basic event
+	if err != nil {
+		return
+	}
+
+	err = c.ContactList(c.UserProfile.Username)
+	if err != nil {
+		return
+	}
+
+	var userIds []string
+	for _, contact := range c.Store.Contacts {
+		if strings.Index(contact.PersonId,"28:") > -1 {
+			continue
+		}
+		userId := strings.Replace(contact.PersonId, "@s.skype.net", "", 1)
+		userIds = append(userIds, userId)
+	}
+	err = c.SubscribeUsers(userIds)
+	return
+}
+
+func (c *Conn) setLoggedInFalse()  {
+	c.LoggedIn = false
+	if c.Refresh != nil {
+		c.Refresh <- -1
+	}
 }

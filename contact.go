@@ -164,12 +164,12 @@ type ContactClient struct {
 }
 
 func (c *Conn) ContactList(id string) (err error) {
-	url := fmt.Sprintf("%s/users/%s/contacts", API_CONTACTS, id)
+	contactUrl := fmt.Sprintf("%s/users/%s/contacts", API_CONTACTS, id)
 	req := Request{timeout: 30}
 	headers := map[string]string{
 		"x-skypetoken": c.LoginInfo.SkypeToken,
 	}
-	body, err := req.HttpGetWitHeaderAndCookiesJson(url, nil, "", nil, headers)
+	body, err := req.HttpGetWitHeaderAndCookiesJson(contactUrl, nil, "", nil, headers)
 	if err != nil {
 		return err
 	}
