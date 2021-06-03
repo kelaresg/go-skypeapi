@@ -455,11 +455,6 @@ func (c *Conn) Poll() {
 		timeout: 60,
 	}
 	for {
-		if c.LoginInfo.LocationHost == "" || c.LoginInfo.EndpointId == "" ||
-			c.LoginInfo.SkypeToken == "" || c.LoginInfo.RegistrationExpires == "" {
-			fmt.Printf("(Poll) 1 LoggedIn false: %+v", c.LoginInfo)
-			c.setLoggedInFalse()
-		}
 		if c.LoggedIn == false {
 			break
 		}
@@ -504,6 +499,9 @@ func (c *Conn) Poll() {
 			//		continue
 			//	}
 			//}
+			if c.LoggedIn == false {
+				break
+			}
 			if len(bodyContent.EventMessages) > 0 {
 				for _, message := range bodyContent.EventMessages {
 					if message.Type == "EventMessage" {
