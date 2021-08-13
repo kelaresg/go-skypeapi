@@ -38,7 +38,6 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 	}
 	defaultDomain := u["host"]
 	//获得每次登录的信息  然后通过token 请求 skype 的官方接口
-	//默认超时
 	if req.timeout == 0 {
 		req.timeout = 10
 	}
@@ -55,10 +54,11 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 	}
 	agent := "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36"
 	//add commom header
-	req1.Header.Set("Accept", "*/*")
 	req1.Header.Set("Host", defaultDomain)
-	req1.Header.Set("Content-Type", "application/json")
 	req1.Header.Set("User-Agent", agent)
+	req1.Header.Set("Accept", "*/*")
+	req1.Header.Set("Content-Type", "application/json")
+
 	for k, v := range header {
 		req1.Header.Set(k, v)
 	}
@@ -92,8 +92,44 @@ func (req *Request) requestReturnResponse(method string, reqUrl string, reqBody 
 }
 
 /**
-底层的请求封装
+ requestWithReturnCookie
 */
+func (req *Request) requestWithReturnCookie(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (body string, err error, status int, needCookies map[string]string) {
+	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, cookies, header)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	needCookies = map[string]string{}
+	headerCookie := resp.Header.Values("Set-Cookie")
+	for _, item := range headerCookie {
+		itemArr := strings.Split(item, "; ")
+		if len(itemArr) > 1 {
+			needCookieArr := strings.Split(itemArr[0], "=");
+			if len(needCookieArr) > 1 {
+				needCookies[needCookieArr[0]] = needCookieArr[1]
+			}
+		}
+
+	}
+	content, err := ioutil.ReadAll(resp.Body) // content, err := ioutil.ReadAll(resp.Header)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if resp.StatusCode == 302 {
+		location := resp.Header.Get("Location")
+		body = location
+	} else {
+		body = string(content)
+	}
+	status = resp.StatusCode
+	return
+}
+
+/**
+ request
+ */
 func (req *Request) request(method string, reqUrl string, reqBody io.Reader, cookies map[string]string, header map[string]string) (body string, err error, status int) {
 	resp, err := req.requestReturnResponse(method, reqUrl, reqBody, cookies, header)
 	if err != nil {
@@ -110,7 +146,6 @@ func (req *Request) request(method string, reqUrl string, reqBody io.Reader, coo
 		body = location
 	} else {
 		body = string(content)
-		fmt.Println(resp.Header)
 	}
 	status = resp.StatusCode
 	return

@@ -197,12 +197,12 @@ func (c *Conn) ContactGroupList(id string) (err error) {
 	return
 }
 
-func (c *Conn) GetAllContactInfo(id, skypetoken string) (err error) {
+func (c *Conn) GetAllContactInfo(id string) (err error) {
 	url := fmt.Sprintf("%s/users/%s", API_CONTACTS, id)
 	//fmt.Println(url)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"x-skypetoken": skypetoken,
+		"x-skypetoken": c.LoginInfo.SkypeToken,
 	}
 	body, err := req.HttpGetWitHeaderAndCookiesJson(url, nil, "", nil, headers)
 	//fmt.Println(body)
@@ -215,12 +215,11 @@ func (c *Conn) GetAllContactInfo(id, skypetoken string) (err error) {
 	return
 }
 
-func (c *Conn) BlockList(id, skypetoken string) (err error) {
+func (c *Conn) BlockList(id string) (err error) {
 	url := fmt.Sprintf("%s/users/%s/blocklist", API_CONTACTS, id)
-	fmt.Println(url)
 	req := Request{timeout: 30}
 	headers := map[string]string{
-		"x-skypetoken": skypetoken,
+		"x-skypetoken": c.LoginInfo.SkypeToken,
 	}
 	body, err := req.HttpGetWitHeaderAndCookiesJson(url, nil, "", nil, headers)
 	//fmt.Println(body)

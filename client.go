@@ -138,12 +138,15 @@ func (c *Conn) GetTokeByAuthLive(username, password string) (err error) {
 		"CkTst":  "G" + strconv.Itoa(int(time.Now().UnixNano())/1000000),
 		"MSPOK":   MSPOK,
 	}
-	opid, t, err := c.sendCred(paramsMap, username, password, PPFT, cookies)
+	opid, t, err, needCookie := c.sendCred(paramsMap, username, password, PPFT, cookies)
 	if err != nil {
 		return
 	}
 	if t == "" {
 		cookies["CkTst"] = strconv.Itoa(int(time.Now().UnixNano() / 1000000))
+		for key, value := range needCookie {
+			cookies[key] = value
+		}
 		t, _ = c.sendOpid(paramsMap, PPFT, opid, cookies)
 		if t == "" {
 			return errors.New("login failed, can not find 't' value")
@@ -556,7 +559,7 @@ func (c *Conn) getToken(t string) (err error) {
 	return
 }
 
-func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, t string, err error) {
+func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, cookies map[string]string) (opid string, t string, err error, needCookies map[string]string) {
 	req := Request{
 		timeout: 30,
 	}
@@ -571,7 +574,7 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 		"Content-Type": "application/x-www-form-urlencoded",
 	}
 	reqUrl := fmt.Sprintf("%s?%s", fmt.Sprintf("%s/ppsecure/post.srf", API_MSACC), gurl.BuildQuery(paramsMap))
-	body, err, _ := req.request("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, header)
+	body, err, _, needCookies := req.requestWithReturnCookie("POST", reqUrl, strings.NewReader(formData.Encode()), cookies, header)
 	if err != nil {
 		return
 	}
@@ -600,11 +603,11 @@ func (c *Conn) sendCred(paramsMap url.Values, username, password, PPFT string, c
 		}
 	})
 	if  t != "" {
-		return "", t, err
+		return "", t, err, needCookies
 	}
 	if err != nil {
 		fmt.Println(err.Error())
-		return "", "", err
+		return "", "", err, needCookies
 	}
 
 	r := regexp.MustCompile(`opid=([A-Z0-9]+)`)

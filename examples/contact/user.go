@@ -6,21 +6,21 @@ import (
 	"github.com/spf13/viper"
 )
 
-func main() {
+func main4() {
 	cli, err := skype.NewConn()
 	if err != nil {
 		fmt.Println(err)
 	}
-	skype.GetConfigYaml()
+	skype.GetConfigYamlForBuildExample()
 	username := viper.GetString("user.username")
 	pwd := viper.GetString("user.password")
 	err  = cli.Login(username, pwd)
 	// eg1
-	//user.GetProfile(skypetoken, "live:love.kimi_2")
+	//user.GetProfile(skypetoken, "live:xxxxxx")
 	//user.GetContactsProfile(skypetoken)
 	// username
 	// like live:xxxxx will be more precise
-	cli.NameSearch( "zoe")
+	cli.NameSearch( "keyword")
 
 
 	// eg2
