@@ -14,6 +14,8 @@ type User struct {
 type Payload struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
+	Mood      string `json:"mood"`
+	RichMood  string `json:"richMood"`
 }
 
 /**
@@ -129,8 +131,8 @@ func (c *Conn)UpdateName(skypeToken string, firstName string, lastName string) (
 	}
 	data := map[string]interface{}{
 		"payload": Payload{
-			firstName,
-			lastName,
+			FirstName: firstName,
+			LastName:  lastName,
 		},
 	}
 	params, _ := json.Marshal(data)
@@ -143,4 +145,42 @@ func (c *Conn)UpdateName(skypeToken string, firstName string, lastName string) (
 	json.Unmarshal([]byte(body), &conInfo)
 	fmt.Println(conInfo.Resource)
 	return
+}
+
+// Set or update profile mood.
+//
+// on successful update, it returns response string, otherwise error is returned
+//
+// Example:
+//
+// emoticon: (wfh)
+//
+// mood: Working from home
+//
+// Official emoticon list can be found here: https://support.skype.com/en/faq/FA12330/what-is-the-full-list-of-emoticons
+func (c *Conn) SetMood(skypeToken, emoticon, mood string) (string, error) {
+	emot := emoticon
+	if len(emoticon) > 2 {
+		emot = emoticon[1 : len(emoticon)-1]
+	}
+
+	path := "https://edge.skype.com/profile/v1/users/self/profile/partial"
+	req := Request{timeout: 30}
+	headers := map[string]string{
+		"x-skypetoken": skypeToken,
+	}
+	data := map[string]interface{}{
+		"payload": Payload{
+			Mood:     fmt.Sprintf("%s %s", emoticon, mood),
+			RichMood: fmt.Sprintf("<ss type=\"%s\">%s</ss> %s", emot, emoticon, mood),
+		},
+	}
+
+	params, _ := json.Marshal(data)
+	body, err, _ := req.request("POST", path, strings.NewReader(string(params)), nil, headers)
+	if err != nil {
+		return "", err
+	}
+
+	return body, nil
 }
